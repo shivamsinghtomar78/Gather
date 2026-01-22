@@ -24,7 +24,7 @@ const fadeInUp = {
     transition: {
       delay: i * 0.1,
       duration: 0.6,
-      ease: [0.22, 1, 0.36, 1]
+      ease: [0.22, 1, 0.36, 1] as const
     }
   })
 };
@@ -49,7 +49,7 @@ const floatingCard = {
     transition: {
       delay: 0.8,
       duration: 0.8,
-      ease: [0.22, 1, 0.36, 1]
+      ease: [0.22, 1, 0.36, 1] as const
     }
   }
 };
