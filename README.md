@@ -187,7 +187,7 @@ The frontend will run on `http://localhost:3001` (or the next available port).
 3. Get connection string
 4. Add to `.env`:
 ```env
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/gather
+MONGODB_URI=mongodb+srv://<YOUR_USERNAME>:<YOUR_PASSWORD>@<YOUR_CLUSTER>.mongodb.net/gather
 ```
 
 ---
