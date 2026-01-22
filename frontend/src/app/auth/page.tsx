@@ -27,19 +27,26 @@ export default function AuthPage() {
 
         try {
             if (mode === 'signup') {
+                console.log('Attempting signup with:', { username, email });
                 await authApi.signup(username, email, password);
                 // After signup, sign in automatically
+                console.log('Signup successful, attempting auto-login...');
                 const response = await authApi.signin(email, password);
                 localStorage.setItem('gather_token', response.data.token);
             } else {
+                console.log('Attempting signin with email:', email);
                 const response = await authApi.signin(email, password);
                 localStorage.setItem('gather_token', response.data.token);
             }
 
             router.push('/dashboard');
         } catch (err: any) {
+            console.error('Auth error:', err);
+            console.error('Error response:', err.response);
+
             const message = err.response?.data?.message ||
                 err.response?.data?.errors?.[0]?.message ||
+                err.message ||
                 'Something went wrong';
             setError(message);
         } finally {
@@ -88,9 +95,9 @@ export default function AuthPage() {
                                     placeholder="Enter your username"
                                     required
                                     minLength={3}
-                                    maxLength={10}
+                                    maxLength={30}
                                 />
-                                <p className="text-xs text-slate-500 mt-1">3-10 characters</p>
+                                <p className="text-xs text-slate-500 mt-1">3-30 characters</p>
                             </div>
                         )}
 

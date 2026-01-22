@@ -10,7 +10,7 @@ const router = Router();
 const signupSchema = z.object({
     username: z.string()
         .min(3, 'Username must be at least 3 characters')
-        .max(10, 'Username must be at most 10 characters'),
+        .max(30, 'Username must be at most 30 characters'),
     email: z.string()
         .email('Invalid email format'),
     password: z.string()
@@ -29,10 +29,14 @@ const signinSchema = z.object({
 
 // POST /api/v1/signup
 router.post('/signup', async (req: Request, res: Response): Promise<void> => {
+    console.log('📝 Signup request received');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+
     try {
         // Validate input
         const validation = signupSchema.safeParse(req.body);
         if (!validation.success) {
+            console.log('❌ Validation failed:', validation.error.errors);
             res.status(411).json({
                 message: 'Error in inputs',
                 errors: validation.error.errors
@@ -41,10 +45,12 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
         }
 
         const { username, email, password } = validation.data;
+        console.log(`✅ Validation passed for user: ${username}, email: ${email}`);
 
         // Check if user already exists by username
         const existingUsername = await User.findOne({ username });
         if (existingUsername) {
+            console.log(`⚠️ Username already exists: ${username}`);
             res.status(403).json({ message: 'User already exists with this username' });
             return;
         }
@@ -52,24 +58,28 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
         // Check if user already exists by email
         const existingEmail = await User.findOne({ email: email.toLowerCase() });
         if (existingEmail) {
+            console.log(`⚠️ Email already exists: ${email}`);
             res.status(403).json({ message: 'User already exists with this email' });
             return;
         }
 
         // Hash password
+        console.log('🔐 Hashing password...');
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
         // Create user
+        console.log('💾 Creating user in database...');
         await User.create({
             username,
             email: email.toLowerCase(),
             password: hashedPassword
         });
 
+        console.log(`✅ User created successfully: ${username}`);
         res.status(200).json({ message: 'Signed up successfully' });
     } catch (error) {
-        console.error('Signup error:', error);
+        console.error('❌ Signup error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });

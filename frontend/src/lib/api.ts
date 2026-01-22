@@ -2,6 +2,8 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
+console.log('🌐 API Base URL:', API_BASE_URL);
+
 export const api = axios.create({
     baseURL: API_BASE_URL,
     headers: {
@@ -11,6 +13,9 @@ export const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
+    console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    console.log('Request data:', config.data);
+
     if (typeof window !== 'undefined') {
         const token = localStorage.getItem('gather_token');
         if (token) {
@@ -18,7 +23,26 @@ api.interceptors.request.use((config) => {
         }
     }
     return config;
+}, (error) => {
+    console.error('❌ Request error:', error);
+    return Promise.reject(error);
 });
+
+// Add response interceptor for logging
+api.interceptors.response.use(
+    (response) => {
+        console.log(`✅ API Response: ${response.status}`, response.data);
+        return response;
+    },
+    (error) => {
+        console.error('❌ API Error:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+        });
+        return Promise.reject(error);
+    }
+);
 
 // Auth API
 export const authApi = {
