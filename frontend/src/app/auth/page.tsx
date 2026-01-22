@@ -14,6 +14,7 @@ export default function AuthPage() {
     const router = useRouter();
     const [mode, setMode] = useState<AuthMode>('signin');
     const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -26,12 +27,12 @@ export default function AuthPage() {
 
         try {
             if (mode === 'signup') {
-                await authApi.signup(username, password);
+                await authApi.signup(username, email, password);
                 // After signup, sign in automatically
-                const response = await authApi.signin(username, password);
+                const response = await authApi.signin(email, password);
                 localStorage.setItem('gather_token', response.data.token);
             } else {
-                const response = await authApi.signin(username, password);
+                const response = await authApi.signin(email, password);
                 localStorage.setItem('gather_token', response.data.token);
             }
 
@@ -75,22 +76,35 @@ export default function AuthPage() {
                     </p>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
+                        {mode === 'signup' && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-200 mb-1.5">
+                                    Username
+                                </label>
+                                <Input
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    placeholder="Enter your username"
+                                    required
+                                    minLength={3}
+                                    maxLength={10}
+                                />
+                                <p className="text-xs text-slate-500 mt-1">3-10 characters</p>
+                            </div>
+                        )}
+
                         <div>
                             <label className="block text-sm font-medium text-slate-200 mb-1.5">
-                                Username
+                                Email
                             </label>
                             <Input
-                                type="text"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                placeholder="Enter your username"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Enter your email"
                                 required
-                                minLength={3}
-                                maxLength={10}
                             />
-                            {mode === 'signup' && (
-                                <p className="text-xs text-slate-500 mt-1">3-10 characters</p>
-                            )}
                         </div>
 
                         <div>

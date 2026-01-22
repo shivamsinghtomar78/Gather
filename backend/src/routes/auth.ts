@@ -11,6 +11,8 @@ const signupSchema = z.object({
     username: z.string()
         .min(3, 'Username must be at least 3 characters')
         .max(10, 'Username must be at most 10 characters'),
+    email: z.string()
+        .email('Invalid email format'),
     password: z.string()
         .min(8, 'Password must be at least 8 characters')
         .max(20, 'Password must be at most 20 characters')
@@ -21,7 +23,7 @@ const signupSchema = z.object({
 });
 
 const signinSchema = z.object({
-    username: z.string(),
+    email: z.string().email('Invalid email format'),
     password: z.string()
 });
 
@@ -38,12 +40,19 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        const { username, password } = validation.data;
+        const { username, email, password } = validation.data;
 
-        // Check if user already exists
-        const existingUser = await User.findOne({ username });
-        if (existingUser) {
+        // Check if user already exists by username
+        const existingUsername = await User.findOne({ username });
+        if (existingUsername) {
             res.status(403).json({ message: 'User already exists with this username' });
+            return;
+        }
+
+        // Check if user already exists by email
+        const existingEmail = await User.findOne({ email: email.toLowerCase() });
+        if (existingEmail) {
+            res.status(403).json({ message: 'User already exists with this email' });
             return;
         }
 
@@ -54,6 +63,7 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
         // Create user
         await User.create({
             username,
+            email: email.toLowerCase(),
             password: hashedPassword
         });
 
@@ -77,10 +87,10 @@ router.post('/signin', async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        const { username, password } = validation.data;
+        const { email, password } = validation.data;
 
-        // Find user
-        const user = await User.findOne({ username });
+        // Find user by email
+        const user = await User.findOne({ email: email.toLowerCase() });
         if (!user) {
             res.status(403).json({ message: 'Wrong email/password' });
             return;

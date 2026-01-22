@@ -22,11 +22,11 @@ api.interceptors.request.use((config) => {
 
 // Auth API
 export const authApi = {
-    signup: (username: string, password: string) =>
-        api.post('/signup', { username, password }),
+    signup: (username: string, email: string, password: string) =>
+        api.post('/signup', { username, email, password }),
 
-    signin: (username: string, password: string) =>
-        api.post('/signin', { username, password }),
+    signin: (email: string, password: string) =>
+        api.post('/signin', { email, password }),
 };
 
 // Content API
