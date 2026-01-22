@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { contentApi } from '@/lib/api';
-import { FileText, Twitter, Video, Link2 } from 'lucide-react';
+import { FileText, Twitter, Video, Link2, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AddContentModalProps {
@@ -22,7 +22,7 @@ interface AddContentModalProps {
 
 type ContentType = 'document' | 'tweet' | 'youtube' | 'link';
 
-const contentTypes: { id: ContentType; label: string; icon: React.ElementType }[] = [
+const contentTypes: { id: ContentType; label: string; icon: LucideIcon }[] = [
     { id: 'document', label: 'Document', icon: FileText },
     { id: 'tweet', label: 'Tweet', icon: Twitter },
     { id: 'youtube', label: 'YouTube', icon: Video },
