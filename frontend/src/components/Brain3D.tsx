@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, MeshDistortMaterial, Sphere, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -35,12 +35,18 @@ function FloatingParticles() {
     const particlesRef = useRef<THREE.Points>(null);
     const particleCount = 100;
 
-    const positions = new Float32Array(particleCount * 3);
-    for (let i = 0; i < particleCount; i++) {
-        positions[i * 3] = (Math.random() - 0.5) * 10;
-        positions[i * 3 + 1] = (Math.random() - 0.5) * 10;
-        positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
-    }
+    // Create geometry imperatively using useMemo to avoid bufferAttribute JSX type issues
+    const geometry = useMemo(() => {
+        const positions = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 10;
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 10;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        return geo;
+    }, []);
 
     useFrame((state) => {
         if (particlesRef.current) {
@@ -49,15 +55,7 @@ function FloatingParticles() {
     });
 
     return (
-        <points ref={particlesRef}>
-            <bufferGeometry>
-                <bufferAttribute
-                    attach="attributes-position"
-                    count={particleCount}
-                    array={positions}
-                    itemSize={3}
-                />
-            </bufferGeometry>
+        <points ref={particlesRef} geometry={geometry}>
             <pointsMaterial
                 size={0.05}
                 color="#d8b4fe"
