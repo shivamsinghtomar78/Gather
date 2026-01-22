@@ -662,23 +662,6 @@ NODE_ENV=development
 5. **Explore the 3D brain** visualization on the landing page
 6. **Customize** the dark theme colors in `frontend/src/app/globals.css`
 
----
-
-## 📞 Support
-
-- Check the troubleshooting section above
-- Review `backend/README.md` for detailed API documentation
-- Check browser console (F12) for error messages
-- Verify MongoDB is running and accessible
-
----
-
-## 📄 License
-
-ISC
-
----
-
 ## 👨‍💻 Development Notes
 
 ### Code Organization
