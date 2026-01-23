@@ -135,12 +135,12 @@ export default function LandingPage() {
           </motion.div>
 
           <div className="flex items-center gap-3">
-            <Link href="/auth/signin">
+            <Link href="/auth">
               <Button variant="ghost" className="font-medium text-slate-300 hover:text-white hover:bg-slate-800/50">
                 Login
               </Button>
             </Link>
-            <Link href="/auth/signup">
+            <Link href="/auth">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 shadow-lg glow-purple border-0">
                   Sign Up

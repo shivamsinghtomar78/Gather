@@ -82,8 +82,8 @@ if (typeof window !== 'undefined') {
     window.addEventListener('storage', (event) => {
         // If token was removed in another tab, redirect to signin
         if (event.key === ACCESS_TOKEN_KEY && !event.newValue) {
-            console.log('🔄 Auth: Access token cleared in another tab. Redirecting to signin.');
-            window.location.href = '/auth/signin';
+            console.log('🔄 Auth: Access token cleared in another tab. Redirecting to auth.');
+            window.location.href = '/auth';
         }
         // If token was added/changed in another tab, we can optionally reload or just let the next request handle it
         if (event.key === ACCESS_TOKEN_KEY && event.newValue) {
