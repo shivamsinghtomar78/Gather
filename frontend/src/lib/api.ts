@@ -72,3 +72,9 @@ export const brainApi = {
     getShared: (shareLink: string) =>
         api.get(`/brain/${shareLink}`),
 };
+
+// Search API
+export const searchApi = {
+    search: (query: string, type?: string) =>
+        api.post('/search', { query, type: type || 'all' }),
+};

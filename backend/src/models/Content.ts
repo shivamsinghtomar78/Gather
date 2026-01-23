@@ -39,6 +39,9 @@ const contentSchema = new Schema<IContent>({
     timestamps: true
 });
 
+// Add text index for search functionality
+contentSchema.index({ title: 'text' });
+
 // Validate that user exists before saving
 contentSchema.pre('save', async function (next) {
     const User = mongoose.model('User');

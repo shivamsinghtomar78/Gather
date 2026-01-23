@@ -5,6 +5,7 @@ import { connectDB } from './config/db';
 import authRoutes from './routes/auth';
 import contentRoutes from './routes/content';
 import brainRoutes from './routes/brain';
+import searchRoutes from './routes/search';
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ app.use((req, res, next) => {
 app.use('/api/v1', authRoutes);
 app.use('/api/v1/content', contentRoutes);
 app.use('/api/v1/brain', brainRoutes);
+app.use('/api/v1/search', searchRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
