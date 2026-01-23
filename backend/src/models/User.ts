@@ -66,7 +66,7 @@ const userSchema = new Schema<IUser>({
     },
     isEmailVerified: {
         type: Boolean,
-        default: false
+        default: true
     },
     emailVerificationToken: String,
     emailVerificationExpires: Date,

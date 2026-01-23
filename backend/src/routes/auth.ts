@@ -129,16 +129,13 @@ router.post('/signup', signupLimiter, async (req: Request, res: Response): Promi
 
         // Create user
         console.log('💾 Creating user in database...');
-        const verificationToken = crypto.randomBytes(32).toString('hex');
         await User.create({
             username,
             email: email.toLowerCase(),
             password: hashedPassword,
             refreshTokens: [],
             loginAttempts: 0,
-            isEmailVerified: false, // Now disabled by default
-            emailVerificationToken: hashToken(verificationToken),
-            emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+            isEmailVerified: true // Enabled by default now
         });
 
         console.log(`✅ User created successfully: ${username}`);
@@ -183,15 +180,6 @@ router.post('/signin', signinLimiter, async (req: Request, res: Response): Promi
                 message: `Account is temporarily locked. Please try again in ${lockTime} minutes.`,
                 code: 'ACCOUNT_LOCKED',
                 retryAfter: lockTime
-            });
-            return;
-        }
-
-        // Check if email is verified
-        if (!user.isEmailVerified) {
-            res.status(403).json({
-                message: 'Please verify your email before signing in.',
-                code: 'EMAIL_NOT_VERIFIED'
             });
             return;
         }
