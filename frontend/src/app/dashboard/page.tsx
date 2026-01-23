@@ -18,6 +18,7 @@ interface Content {
     type: 'tweet' | 'youtube' | 'document' | 'link';
     title: string;
     link: string;
+    imageUrl?: string;
     tags: string[];
 }
 
@@ -58,7 +59,7 @@ export default function DashboardPage() {
             fetchContent();
         }
 
-        // Re-verify on window focus (handle case where user logged out in another tab)
+        // Re-verify on window focus
         window.addEventListener('focus', checkAuth);
         return () => window.removeEventListener('focus', checkAuth);
     }, [router, fetchContent]);
@@ -215,6 +216,7 @@ export default function DashboardPage() {
                                     type={item.type}
                                     title={item.title}
                                     link={item.link}
+                                    imageUrl={item.imageUrl}
                                     tags={item.tags}
                                     onDelete={handleDelete}
                                 />

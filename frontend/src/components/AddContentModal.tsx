@@ -33,6 +33,7 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
     const [type, setType] = useState<ContentType>('link');
     const [link, setLink] = useState('');
     const [title, setTitle] = useState('');
+    const [imageUrl, setImageUrl] = useState('');
     const [tagsInput, setTagsInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -48,12 +49,13 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
                 .map(tag => tag.trim())
                 .filter(tag => tag.length > 0);
 
-            await contentApi.add({ type, link, title, tags });
+            await contentApi.add({ type, link, title, tags, imageUrl });
 
             // Reset form
             setType('link');
             setLink('');
             setTitle('');
+            setImageUrl('');
             setTagsInput('');
 
             onSuccess();
@@ -128,6 +130,19 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
                             onChange={(e) => setLink(e.target.value)}
                             placeholder="https://..."
                             required
+                        />
+                    </div>
+
+                    {/* Image URL (Optional) */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-200 mb-1.5">
+                            Image URL (Optional)
+                        </label>
+                        <Input
+                            type="url"
+                            value={imageUrl}
+                            onChange={(e) => setImageUrl(e.target.value)}
+                            placeholder="https://images.unsplash.com/..."
                         />
                     </div>
 

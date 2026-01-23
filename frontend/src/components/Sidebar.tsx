@@ -18,6 +18,7 @@ interface SidebarProps {
 }
 
 const navItems = [
+    { id: 'all' as const, label: 'Home', icon: Brain },
     { id: 'tweet' as const, label: 'Tweets', icon: Twitter },
     { id: 'youtube' as const, label: 'Videos', icon: Video },
     { id: 'document' as const, label: 'Documents', icon: FileText },

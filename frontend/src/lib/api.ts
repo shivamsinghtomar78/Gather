@@ -252,7 +252,7 @@ export const authApi = {
 export const contentApi = {
     getAll: () => api.get('/content'),
 
-    add: (data: { type: string; link: string; title: string; tags: string[] }) =>
+    add: (data: { type: string; link: string; title: string; imageUrl?: string; tags: string[] }) =>
         api.post('/content', data),
 
     delete: (contentId: string) =>

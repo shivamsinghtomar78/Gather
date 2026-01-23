@@ -6,6 +6,8 @@ export interface IContent extends Document {
     link: string;
     type: ContentType;
     title: string;
+    imageUrl?: string;
+    embedding?: number[];
     tags: Types.ObjectId[];
     userId: Types.ObjectId;
 }
@@ -25,6 +27,13 @@ const contentSchema = new Schema<IContent>({
     title: {
         type: String,
         required: true
+    },
+    imageUrl: {
+        type: String
+    },
+    embedding: {
+        type: [Number],
+        index: false // We will manage the vector index separately in Atlas
     },
     tags: [{
         type: Schema.Types.ObjectId,

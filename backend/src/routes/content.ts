@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { Content } from '../models/Content';
 import { Tag } from '../models/Tag';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { generateEmbedding } from '../utils/gemini';
 
 const router = Router();
 
@@ -14,6 +15,7 @@ const contentSchema = z.object({
     type: z.enum(['document', 'tweet', 'youtube', 'link']),
     link: z.string().url('Invalid URL format'),
     title: z.string().min(1, 'Title is required'),
+    imageUrl: z.string().url('Invalid image URL format').optional().or(z.literal('')),
     tags: z.array(z.string()).optional().default([])
 });
 
@@ -33,7 +35,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
             return;
         }
 
-        const { type, link, title, tags } = validation.data;
+        const { type, link, title, tags, imageUrl } = validation.data;
         const userId = req.userId;
 
         // Process tags - find existing or create new
@@ -47,11 +49,21 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
             })
         );
 
+        // Generate embedding for search (RAG)
+        let embedding: number[] | undefined;
+        try {
+            embedding = await generateEmbedding(`${title} ${type}`);
+        } catch (error) {
+            console.warn('⚠️ Embedding generation failed, following back to keyword search:', error);
+        }
+
         // Create content
         const content = await Content.create({
             type,
             link,
             title,
+            imageUrl,
+            embedding,
             tags: tagIds,
             userId
         });
@@ -63,6 +75,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
                 type: content.type,
                 link: content.link,
                 title: content.title,
+                imageUrl: content.imageUrl,
                 tags
             }
         });
