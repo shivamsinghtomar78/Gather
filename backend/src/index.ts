@@ -12,8 +12,28 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+// Enhanced CORS configuration
+app.use(cors({
+    origin: ['https://gather-ochre.vercel.app', 'http://localhost:3001', 'http://localhost:3000'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
+
+// Request logging middleware - MUST be before routes
+app.use((req, res, next) => {
+    const timestamp = new Date().toISOString();
+    console.log('═══════════════════════════════════════════════════════');
+    console.log(`[${timestamp}] ${req.method} ${req.url}`);
+    console.log('Full URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
+    console.log('Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+    console.log('Query:', JSON.stringify(req.query, null, 2));
+    console.log('═══════════════════════════════════════════════════════');
+    next();
+});
 
 // Routes
 app.use('/api/v1', authRoutes);
@@ -23,6 +43,43 @@ app.use('/api/v1/brain', brainRoutes);
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', message: 'Gather API is running' });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+    res.json({
+        status: 'ok',
+        message: 'Gather API is running',
+        endpoints: {
+            health: '/health',
+            signup: '/api/v1/signup',
+            signin: '/api/v1/signin',
+            content: '/api/v1/content',
+            brain: '/api/v1/brain'
+        }
+    });
+});
+
+// 404 handler - MUST be after all routes
+app.use((req, res) => {
+    console.log('❌ 404 NOT FOUND:', req.method, req.url);
+    console.log('Available routes:', [
+        'GET /health',
+        'GET /',
+        'POST /api/v1/signup',
+        'POST /api/v1/signin',
+        'GET /api/v1/content',
+        'POST /api/v1/content',
+        'DELETE /api/v1/content',
+        'POST /api/v1/brain/share',
+        'GET /api/v1/brain/:shareLink'
+    ]);
+    res.status(404).json({
+        error: 'Not Found',
+        requestedUrl: req.url,
+        method: req.method,
+        message: 'The requested endpoint does not exist'
+    });
 });
 
 // Connect to database and start server
