@@ -12,13 +12,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy for Render/Cloudflare
+app.set('trust proxy', 1);
+
 // Middleware
 // Enhanced CORS configuration
 app.use(cors({
-    origin: ['https://gather-ochre.vercel.app', 'http://localhost:3001', 'http://localhost:3000'],
+    origin: ['https://gather-ochre.vercel.app', 'https://gather-zxaa.onrender.com', 'http://localhost:3000', 'http://localhost:3001'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 app.use(express.json());

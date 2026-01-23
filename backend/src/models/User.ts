@@ -113,8 +113,6 @@ userSchema.methods.resetLoginAttempts = async function (): Promise<void> {
 
 // Index for faster lookups
 userSchema.index({ 'refreshTokens.token': 1 });
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
 
 export const User = mongoose.model<IUser>('User', userSchema);
 

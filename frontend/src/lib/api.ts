@@ -1,11 +1,14 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://gather-zxaa.onrender.com/api/v1';
+const isProd = process.env.NODE_ENV === 'production';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
+    (isProd ? 'https://gather-zxaa.onrender.com' : 'http://localhost:3000');
 
+console.log(`🌐 API Mode: ${isProd ? 'Production' : 'Development'}`);
 console.log('🌐 API Base URL:', API_BASE_URL);
 
 export const api = axios.create({
-    baseURL: API_BASE_URL,
+    baseURL: `${API_BASE_URL}/api/v1`,
     headers: {
         'Content-Type': 'application/json',
     },
