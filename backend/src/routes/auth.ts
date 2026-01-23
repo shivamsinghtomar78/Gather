@@ -139,8 +139,7 @@ router.post('/signup', signupLimiter, async (req: Request, res: Response): Promi
         });
 
         console.log(`✅ User created successfully: ${username}`);
-        console.log(`📧 [MOCK EMAIL] Verification token for ${email}: ${verificationToken}`);
-        res.status(200).json({ message: 'Signed up successfully. Please verify your email.' });
+        res.status(200).json({ message: 'Signed up successfully.' });
     } catch (error) {
         console.error('❌ Signup error:', error);
         res.status(500).json({ message: 'Server error' });
