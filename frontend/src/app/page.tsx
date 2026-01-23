@@ -194,26 +194,6 @@ export default function LandingPage() {
                 Store tweets, videos, and links in one beautiful space.
                 Never forget an idea again.
               </motion.p>
-
-              <motion.div
-                variants={fadeInUp}
-                custom={3}
-                className="flex flex-wrap gap-4"
-              >
-                <Link href="/auth/signup">
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button size="lg" className="gap-2 px-8 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 shadow-xl glow-purple border-0">
-                      Start Free
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </motion.div>
-                </Link>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="lg" variant="outline" className="px-8 bg-slate-900/50 border-purple-500/30 text-slate-100 hover:bg-slate-900 backdrop-blur-sm hover:border-purple-500/50">
-                    Learn More
-                  </Button>
-                </motion.div>
-              </motion.div>
             </motion.div>
 
             {/* Right - 3D Brain + Floating Card */}
