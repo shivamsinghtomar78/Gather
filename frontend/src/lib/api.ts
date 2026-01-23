@@ -1,14 +1,18 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 const isProd = process.env.NODE_ENV === 'production';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
+let API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
     (isProd ? 'https://gather-zxaa.onrender.com' : 'http://localhost:3000');
+
+// Sanitize: Remove trailing slash
+API_BASE_URL = API_BASE_URL.replace(/\/$/, '');
 
 console.log(`🌐 API Mode: ${isProd ? 'Production' : 'Development'}`);
 console.log('🌐 API Base URL:', API_BASE_URL);
 
 export const api = axios.create({
     baseURL: `${API_BASE_URL}/api/v1`,
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
     },

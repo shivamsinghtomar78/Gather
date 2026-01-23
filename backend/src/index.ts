@@ -16,12 +16,47 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // Middleware
-// Enhanced CORS configuration
+// Enhanced CORS configuration with dynamic origin support
+const allowedOrigins = [
+    'https://gather-ochre.vercel.app',
+    'https://gather-zxaa.onrender.com',
+    'http://localhost:3000',
+    'http://localhost:3001'
+];
+
 app.use(cors({
-    origin: ['https://gather-ochre.vercel.app', 'https://gather-zxaa.onrender.com', 'http://localhost:3000', 'http://localhost:3001'],
+    origin: (origin, callback) => {
+        // Log all CORS requests for debugging
+        console.log(`📨 CORS check for origin: ${origin || 'NO ORIGIN (same-origin or tools)'}`);
+
+        // Allow requests with no origin (same-origin, mobile apps, curl)
+        if (!origin) {
+            console.log('✅ Allowing no-origin request');
+            return callback(null, true);
+        }
+
+        // Check exact match
+        const isAllowed = allowedOrigins.some(ao => ao === origin);
+        if (isAllowed) {
+            console.log(`✅ Origin ${origin} is in allowed list`);
+            return callback(null, true);
+        }
+
+        // Check Vercel pattern (*.vercel.app)
+        if (origin.match(/^https:\/\/[\w-]+\.vercel\.app$/)) {
+            console.log(`✅ Origin ${origin} matches Vercel pattern`);
+            return callback(null, true);
+        }
+
+        // Block and log
+        console.error(`❌ CORS BLOCKED: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    maxAge: 600 // Cache preflight for 10 minutes
 }));
 
 app.use(express.json());
