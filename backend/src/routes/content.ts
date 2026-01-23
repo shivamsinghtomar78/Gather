@@ -13,8 +13,9 @@ router.use(authMiddleware);
 // Validation schema for content
 const contentSchema = z.object({
     type: z.enum(['document', 'tweet', 'youtube', 'link']),
-    link: z.string().url('Invalid URL format'),
+    link: z.string().url('Invalid URL format').optional().or(z.literal('')),
     title: z.string().min(1, 'Title is required'),
+    description: z.string().optional(),
     imageUrl: z.string().url('Invalid image URL format').optional().or(z.literal('')),
     tags: z.array(z.string()).optional().default([])
 });
@@ -35,7 +36,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
             return;
         }
 
-        const { type, link, title, tags, imageUrl } = validation.data;
+        const { type, link, title, tags, imageUrl, description } = validation.data;
         const userId = req.userId;
 
         // Process tags - find existing or create new
@@ -62,6 +63,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
             type,
             link,
             title,
+            description,
             imageUrl,
             embedding,
             tags: tagIds,
@@ -75,6 +77,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
                 type: content.type,
                 link: content.link,
                 title: content.title,
+                description: content.description,
                 imageUrl: content.imageUrl,
                 tags
             }
@@ -99,6 +102,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
             type: content.type,
             link: content.link,
             title: content.title,
+            description: content.description,
             tags: (content.tags as any[]).map(tag => tag.title)
         }));
 

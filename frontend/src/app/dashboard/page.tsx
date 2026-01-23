@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sidebar } from '@/components/Sidebar';
+import { Sidebar, FilterType } from '@/components/Sidebar';
 import { ContentCard } from '@/components/ContentCard';
 import { AddContentModal } from '@/components/AddContentModal';
 import { ShareBrainModal } from '@/components/ShareBrainModal';
@@ -11,15 +11,15 @@ import { Button } from '@/components/ui/button';
 import { authApi, contentApi, searchApi, tokenManager } from '@/lib/api';
 import { Plus, Share2, LogOut } from 'lucide-react';
 
-type FilterType = 'all' | 'tweet' | 'youtube' | 'document' | 'link' | 'tags';
-
 interface Content {
     id: string;
     type: 'tweet' | 'youtube' | 'document' | 'link';
     title: string;
-    link: string;
+    link?: string;
     imageUrl?: string;
+    description?: string;
     tags: string[];
+    createdAt?: string;
 }
 
 export default function DashboardPage() {
@@ -36,6 +36,7 @@ export default function DashboardPage() {
     const fetchContent = useCallback(async () => {
         try {
             const response = await contentApi.getAll();
+            // Backend should return createdAt, if not we might need to handle it
             setContent(response.data.content || []);
         } catch (error: any) {
             if (error.response?.status === 401) {
@@ -59,9 +60,29 @@ export default function DashboardPage() {
             fetchContent();
         }
 
-        // Re-verify on window focus
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const isInput = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName);
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('search-input')?.focus();
+            }
+            if ((e.metaKey || e.ctrlKey) && e.key === 'n' && !isInput) {
+                e.preventDefault();
+                setAddModalOpen(true);
+            }
+            if (e.key === 'Escape') {
+                setAddModalOpen(false);
+                setShareModalOpen(false);
+                handleClearSearch();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('focus', checkAuth);
-        return () => window.removeEventListener('focus', checkAuth);
+        return () => {
+            window.removeEventListener('focus', checkAuth);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
     }, [router, fetchContent]);
 
     const handleDelete = async (id: string) => {
@@ -82,7 +103,11 @@ export default function DashboardPage() {
         setSearchQuery(query);
         setIsSearching(true);
         try {
-            const response = await searchApi.search(query, activeFilter === 'all' ? undefined : activeFilter);
+            const response = await searchApi.search(query,
+                ['all', 'tags', 'smart-recent', 'smart-uncategorized', 'smart-deepwork'].includes(activeFilter)
+                    ? undefined
+                    : activeFilter as any
+            );
             setSearchResults(response.data.results || []);
         } catch (error) {
             console.error('Search failed:', error);
@@ -97,12 +122,39 @@ export default function DashboardPage() {
         setSearchResults([]);
     };
 
-    // Use search results if searching, otherwise use filtered content
-    const displayContent = searchQuery
-        ? searchResults
-        : (activeFilter === 'all' || activeFilter === 'tags'
-            ? content
-            : content.filter(c => c.type === activeFilter));
+    // Calculate Recent Activity from content state
+    const recentActivity = useMemo(() => {
+        return [...content]
+            .sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime())
+            .slice(0, 5)
+            .map(item => ({
+                id: item.id,
+                title: item.title,
+                time: item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'
+            }));
+    }, [content]);
+
+    // Enhanced Filtering Logic including Smart Folders
+    const displayContent = useMemo(() => {
+        if (searchQuery) return searchResults;
+
+        switch (activeFilter) {
+            case 'smart-recent':
+                // Items added in last 24 hours
+                const oneDayAgo = new Date().getTime() - (24 * 60 * 60 * 1000);
+                return content.filter(item => new Date(item.createdAt || '').getTime() > oneDayAgo);
+            case 'smart-uncategorized':
+                return content.filter(item => !item.tags || item.tags.length === 0);
+            case 'smart-deepwork':
+                const deepWorkTags = ['deep', 'focus', 'study', 'work', 'project'];
+                return content.filter(item => item.tags?.some(tag => deepWorkTags.includes(tag.toLowerCase())));
+            case 'all':
+            case 'tags':
+                return content;
+            default:
+                return content.filter(c => c.type === activeFilter);
+        }
+    }, [content, searchQuery, searchResults, activeFilter]);
 
     const getPageTitle = () => {
         switch (activeFilter) {
@@ -111,6 +163,9 @@ export default function DashboardPage() {
             case 'document': return 'Documents';
             case 'link': return 'Links';
             case 'tags': return 'All Tags';
+            case 'smart-recent': return 'Recently Added';
+            case 'smart-uncategorized': return 'Uncategorized Content';
+            case 'smart-deepwork': return 'Deep Work Mode';
             default: return 'All Notes';
         }
     };
@@ -125,87 +180,47 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-screen bg-slate-950">
-            <Sidebar activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+            <Sidebar
+                activeFilter={activeFilter}
+                onFilterChange={setActiveFilter}
+                recentActivity={recentActivity}
+            />
 
-            {/* Main Content */}
             <main className="ml-64 min-h-screen">
-                {/* Header */}
                 <header className="sticky top-0 z-40 bg-slate-900/50 backdrop-blur-md border-b border-purple-500/10">
                     <div className="px-8 py-4 space-y-4">
                         <div className="flex items-center justify-between">
                             <h1 className="text-2xl font-bold text-slate-100">{getPageTitle()}</h1>
-
                             <div className="flex items-center gap-3">
-                                <Button
-                                    variant="outline"
-                                    className="gap-2"
-                                    onClick={() => setShareModalOpen(true)}
-                                >
+                                <Button variant="outline" className="gap-2" onClick={() => setShareModalOpen(true)}>
                                     <Share2 className="w-4 h-4" />
                                     Share Brain
                                 </Button>
-                                <Button
-                                    className="gap-2"
-                                    onClick={() => setAddModalOpen(true)}
-                                >
+                                <Button className="gap-2" onClick={() => setAddModalOpen(true)}>
                                     <Plus className="w-4 h-4" />
                                     Add Content
                                 </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={handleLogout}
-                                    title="Logout"
-                                >
+                                <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
                                     <LogOut className="w-4 h-4" />
                                 </Button>
                             </div>
                         </div>
-
-                        {/* Search Bar */}
-                        <SearchBar
-                            onSearch={handleSearch}
-                            onClear={handleClearSearch}
-                            isSearching={isSearching}
-                        />
-
-                        {/* Search Results Info */}
+                        <SearchBar onSearch={handleSearch} onClear={handleClearSearch} isSearching={isSearching} />
                         {searchQuery && (
-                            <div className="flex items-center justify-between text-sm">
-                                <p className="text-slate-400">
-                                    {isSearching ? (
-                                        <span>Searching...</span>
-                                    ) : (
-                                        <span>
-                                            Found <span className="text-purple-400 font-semibold">{searchResults.length}</span> result{searchResults.length !== 1 ? 's' : ''} for "{searchQuery}"
-                                        </span>
-                                    )}
-                                </p>
-                            </div>
+                            <p className="text-sm text-slate-400">
+                                Found <span className="text-purple-400 font-semibold">{searchResults.length}</span> results for "{searchQuery}"
+                            </p>
                         )}
                     </div>
                 </header>
 
-                {/* Content Grid */}
                 <div className="p-8">
                     {displayContent.length === 0 ? (
                         <div className="text-center py-16">
-                            <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-purple-500/20">
-                                <Plus className="w-8 h-8 text-slate-600" />
-                            </div>
-                            <h3 className="text-lg font-medium text-slate-100 mb-2">
-                                {searchQuery ? 'No results found' : 'No content yet'}
-                            </h3>
-                            <p className="text-slate-400 mb-6">
-                                {searchQuery
-                                    ? `No content matches "${searchQuery}". Try a different search term.`
-                                    : 'Start adding tweets, videos, documents, and links to your second brain.'}
-                            </p>
-                            {!searchQuery && (
-                                <Button onClick={() => setAddModalOpen(true)}>
-                                    Add Your First Content
-                                </Button>
-                            )}
+                            <Plus className="w-12 h-12 text-slate-700 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-slate-100 mb-2">No items found</h3>
+                            <p className="text-sm text-slate-400 mb-6">Try adjusting your filters or adding new content.</p>
+                            <Button onClick={() => setAddModalOpen(true)}>Add Content</Button>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -217,6 +232,7 @@ export default function DashboardPage() {
                                     title={item.title}
                                     link={item.link}
                                     imageUrl={item.imageUrl}
+                                    description={item.description}
                                     tags={item.tags}
                                     onDelete={handleDelete}
                                 />
@@ -226,18 +242,8 @@ export default function DashboardPage() {
                 </div>
             </main>
 
-            {/* Modals */}
-            <AddContentModal
-                open={addModalOpen}
-                onOpenChange={setAddModalOpen}
-                onSuccess={fetchContent}
-            />
-
-            <ShareBrainModal
-                open={shareModalOpen}
-                onOpenChange={setShareModalOpen}
-                contentCount={content.length}
-            />
+            <AddContentModal open={addModalOpen} onOpenChange={setAddModalOpen} onSuccess={fetchContent} />
+            <ShareBrainModal open={shareModalOpen} onOpenChange={setShareModalOpen} contentCount={content.length} />
         </div>
     );
 }

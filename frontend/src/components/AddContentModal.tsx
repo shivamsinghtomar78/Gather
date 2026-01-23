@@ -33,6 +33,7 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
     const [type, setType] = useState<ContentType>('link');
     const [link, setLink] = useState('');
     const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
     const [imageUrl, setImageUrl] = useState('');
     const [tagsInput, setTagsInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -49,12 +50,13 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
                 .map(tag => tag.trim())
                 .filter(tag => tag.length > 0);
 
-            await contentApi.add({ type, link, title, tags, imageUrl });
+            await contentApi.add({ type, link: link || undefined, title, description, tags, imageUrl });
 
             // Reset form
             setType('link');
             setLink('');
             setTitle('');
+            setDescription('');
             setImageUrl('');
             setTagsInput('');
 
@@ -143,6 +145,19 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
                             value={imageUrl}
                             onChange={(e) => setImageUrl(e.target.value)}
                             placeholder="https://images.unsplash.com/..."
+                        />
+                    </div>
+
+                    {/* Description / Notes (Optional) */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-200 mb-1.5">
+                            Notes / Content (Optional)
+                        </label>
+                        <textarea
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Add some notes or long-form content here..."
+                            className="w-full min-h-[100px] bg-slate-900 border border-slate-800 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-y"
                         />
                     </div>
 

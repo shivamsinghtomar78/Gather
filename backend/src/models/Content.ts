@@ -3,9 +3,10 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 export type ContentType = 'document' | 'tweet' | 'youtube' | 'link';
 
 export interface IContent extends Document {
-    link: string;
+    link?: string;
     type: ContentType;
     title: string;
+    description?: string;
     imageUrl?: string;
     embedding?: number[];
     tags: Types.ObjectId[];
@@ -17,7 +18,7 @@ const contentTypes: ContentType[] = ['document', 'tweet', 'youtube', 'link'];
 const contentSchema = new Schema<IContent>({
     link: {
         type: String,
-        required: true
+        required: false
     },
     type: {
         type: String,
@@ -27,6 +28,9 @@ const contentSchema = new Schema<IContent>({
     title: {
         type: String,
         required: true
+    },
+    description: {
+        type: String
     },
     imageUrl: {
         type: String
