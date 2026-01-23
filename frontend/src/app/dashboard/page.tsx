@@ -38,7 +38,7 @@ export default function DashboardPage() {
             setContent(response.data.content || []);
         } catch (error: any) {
             if (error.response?.status === 401) {
-                router.push('/auth/signin');
+                router.push('/auth');
             }
         } finally {
             setLoading(false);
@@ -48,7 +48,7 @@ export default function DashboardPage() {
     useEffect(() => {
         const checkAuth = () => {
             if (!tokenManager.isAuthenticated()) {
-                router.push('/auth/signin');
+                router.push('/auth');
                 return false;
             }
             return true;

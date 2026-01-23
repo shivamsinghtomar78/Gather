@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { authApi } from '@/lib/api';
-import { Brain, Eye, EyeOff } from 'lucide-react';
+import { Brain, Eye, EyeOff, Mail, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -19,6 +19,8 @@ export default function AuthPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+    const [needsVerification, setNeedsVerification] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -29,24 +31,41 @@ export default function AuthPage() {
             if (mode === 'signup') {
                 console.log('Attempting signup with:', { username, email });
                 await authApi.signup(username, email, password);
-                // After signup, sign in automatically
-                console.log('Signup successful, attempting auto-login...');
-                await authApi.signin(email, password);
+                setSuccessMessage('Account created! Please check your email to verify your account.');
+                setMode('signin');
+                return;
             } else {
                 console.log('Attempting signin with email:', email);
                 await authApi.signin(email, password);
+                router.push('/dashboard');
             }
-
-            router.push('/dashboard');
         } catch (err: any) {
             console.error('Auth error:', err);
-            console.error('Error response:', err.response);
+
+            const errCode = err.response?.data?.code;
+            if (errCode === 'EMAIL_NOT_VERIFIED') {
+                setNeedsVerification(true);
+            }
 
             const message = err.response?.data?.message ||
                 err.response?.data?.errors?.[0]?.message ||
                 err.message ||
                 'Something went wrong';
             setError(message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResendVerification = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            await authApi.resendVerification(email);
+            setSuccessMessage('Verification email resent! Please check your inbox.');
+            setNeedsVerification(false);
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Failed to resend verification email.');
         } finally {
             setLoading(false);
         }
@@ -140,11 +159,44 @@ export default function AuthPage() {
                                     8-20 chars, uppercase, lowercase, number, special char
                                 </p>
                             )}
+                            {mode === 'signin' && (
+                                <div className="mt-2 text-right">
+                                    <Link
+                                        href="/auth/forgot-password"
+                                        className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                                    >
+                                        Forgot password?
+                                    </Link>
+                                </div>
+                            )}
                         </div>
 
+                        {successMessage && (
+                            <div className="bg-emerald-950/50 text-emerald-400 text-sm p-4 rounded-lg border border-emerald-500/30 flex gap-3">
+                                <CheckCircle2 className="w-5 h-5 shrink-0" />
+                                <p>{successMessage}</p>
+                            </div>
+                        )}
+
                         {error && (
-                            <div className="bg-red-950/50 text-red-400 text-sm p-3 rounded-lg border border-red-500/30">
-                                {error}
+                            <div className={`text-sm p-4 rounded-lg border flex gap-3 ${needsVerification
+                                    ? 'bg-amber-950/50 text-amber-400 border-amber-500/30'
+                                    : 'bg-red-950/50 text-red-400 border-red-500/30'
+                                }`}>
+                                {needsVerification ? <Mail className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
+                                <div>
+                                    <p>{error}</p>
+                                    {needsVerification && (
+                                        <button
+                                            type="button"
+                                            onClick={handleResendVerification}
+                                            className="mt-2 text-amber-300 font-medium hover:underline flex items-center gap-1"
+                                            disabled={loading}
+                                        >
+                                            Resend verification email
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         )}
 

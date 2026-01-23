@@ -234,6 +234,18 @@ export const authApi = {
 
     getMe: () =>
         api.get('/me'),
+
+    verifyEmail: (token: string) =>
+        api.post('/verify-email', { token }),
+
+    resendVerification: (email: string) =>
+        api.post('/resend-verification', { email }),
+
+    forgotPassword: (email: string) =>
+        api.post('/forgot-password', { email }),
+
+    resetPassword: (token: string, newPassword: string) =>
+        api.post('/reset-password', { token, newPassword }),
 };
 
 // Content API

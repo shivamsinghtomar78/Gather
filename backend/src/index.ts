@@ -64,12 +64,34 @@ app.use(express.json());
 // Request logging middleware - MUST be before routes
 app.use((req, res, next) => {
     const timestamp = new Date().toISOString();
+
+    // Helper to redact sensitive info
+    const redact = (obj: any): any => {
+        if (!obj || typeof obj !== 'object') return obj;
+        const sensitiveKeys = ['password', 'token', 'refreshToken', 'accessToken', 'currentPassword', 'newPassword'];
+        const redacted = { ...obj };
+        for (const key of Object.keys(redacted)) {
+            if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk.toLowerCase()))) {
+                redacted[key] = '[REDACTED]';
+            } else if (typeof redacted[key] === 'object') {
+                redacted[key] = redact(redacted[key]);
+            }
+        }
+        return redacted;
+    };
+
     console.log('═══════════════════════════════════════════════════════');
     console.log(`[${timestamp}] ${req.method} ${req.url}`);
     console.log('Full URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
-    console.log('Headers:', JSON.stringify(req.headers, null, 2));
-    console.log('Body:', JSON.stringify(req.body, null, 2));
-    console.log('Query:', JSON.stringify(req.query, null, 2));
+
+    // Redact headers and body
+    const safeHeaders = redact(req.headers);
+    const safeBody = redact(req.body);
+    const safeQuery = redact(req.query);
+
+    console.log('Headers:', JSON.stringify(safeHeaders, null, 2));
+    console.log('Body:', JSON.stringify(safeBody, null, 2));
+    console.log('Query:', JSON.stringify(safeQuery, null, 2));
     console.log('═══════════════════════════════════════════════════════');
     next();
 });
