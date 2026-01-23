@@ -268,6 +268,27 @@ export const contentApi = {
 
     delete: (contentId: string) =>
         api.delete('/content', { data: { contentId } }),
+
+    chat: (query: string) =>
+        api.post('/content/chat', { query }),
+
+    summarize: (tag: string) =>
+        api.post('/content/summarize', { tag }),
+
+    generateFlashcards: (contentId: string) =>
+        api.post('/content/flashcards', { contentId }),
+
+    ocr: (image: string) =>
+        api.post('/content/ocr', { image }),
+
+    updatePublicStatus: (contentId: string, isPublic: boolean) =>
+        api.put(`/content/${contentId}/public`, { isPublic }),
+};
+
+// Profile API
+export const profileApi = {
+    getProfile: (username: string) =>
+        api.get(`/profile/${username}`),
 };
 
 // Brain API

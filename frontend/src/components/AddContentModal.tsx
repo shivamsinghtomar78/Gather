@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { contentApi } from '@/lib/api';
-import { FileText, Twitter, Video, Link2, LucideIcon } from 'lucide-react';
+import { FileText, Twitter, Video, Link2, LucideIcon, Camera, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AddContentModalProps {
@@ -36,8 +36,37 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
     const [description, setDescription] = useState('');
     const [imageUrl, setImageUrl] = useState('');
     const [tagsInput, setTagsInput] = useState('');
+    const [isProcessing, setIsProcessing] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    const handleOCR = async (file: File) => {
+        setIsProcessing(true);
+        try {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                const base64 = reader.result as string;
+                const response = await contentApi.ocr(base64);
+                const { title, description, tags } = response.data;
+
+                setTitle(title);
+                setDescription(description);
+                setTagsInput(tags.join(', '));
+                setType('document');
+            };
+        } catch (error) {
+            console.error('OCR failed:', error);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) handleOCR(file);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -51,6 +80,29 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
                 .filter(tag => tag.length > 0);
 
             await contentApi.add({ type, link: link || undefined, title, description, tags, imageUrl });
+
+            // Micro-interactions
+            if (window.navigator?.vibrate) {
+                window.navigator.vibrate(50); // Short haptic pulse
+            }
+
+            // Generate a subtle success beep
+            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+            oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.1); // A4
+
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.1);
 
             // Reset form
             setType('link');
@@ -80,6 +132,36 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                    {/* OCR Upload Area */}
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isProcessing}
+                        className="w-full h-24 rounded-2xl border-2 border-dashed border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10 hover:border-purple-500/40 transition-all flex flex-col items-center justify-center gap-2 group relative overflow-hidden"
+                    >
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                        />
+                        {isProcessing ? (
+                            <>
+                                <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+                                <span className="text-xs text-purple-400 font-medium animate-pulse">Analyzing Image...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Camera className="w-6 h-6 text-slate-400 group-hover:text-purple-400 transition-colors" />
+                                <div className="text-center">
+                                    <span className="text-xs text-slate-300 font-bold block">Upload Image for AI OCR</span>
+                                    <span className="text-[10px] text-slate-500 uppercase tracking-wider">Extract text, title & tags</span>
+                                </div>
+                                <Sparkles className="absolute top-2 right-2 w-4 h-4 text-purple-400/20 group-hover:text-purple-400 transition-colors" />
+                            </>
+                        )}
+                    </button>
                     {/* Content Type Selection */}
                     <div>
                         <label className="block text-sm font-medium text-slate-200 mb-2">

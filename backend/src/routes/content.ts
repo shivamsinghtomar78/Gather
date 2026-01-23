@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { Content } from '../models/Content';
 import { Tag } from '../models/Tag';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { generateEmbedding, suggestTags } from '../utils/gemini';
+import { generateEmbedding, suggestTags, chatWithContext, summarizeTagContent, extractTextFromImage, generateFlashcards } from '../utils/gemini';
 import { scrapeMetadata } from '../utils/scraper';
 
 const router = Router();
@@ -145,7 +145,9 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
             link: content.link,
             title: content.title,
             description: content.description,
-            tags: (content.tags as any[]).map(tag => tag.title)
+            imageUrl: content.imageUrl,
+            tags: (content.tags as any[]).map(tag => tag.title),
+            isPublic: content.isPublic
         }));
 
         res.status(200).json({ content: formattedContent });
@@ -194,6 +196,158 @@ router.delete('/', async (req: AuthRequest, res: Response): Promise<void> => {
         res.status(200).json({ message: 'Delete succeeded' });
     } catch (error) {
         console.error('Delete content error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// POST /api/v1/content/flashcards - Generate flashcards from content
+router.post('/flashcards', async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const { contentId } = req.body;
+        const userId = req.userId;
+
+        const content = await Content.findOne({ _id: contentId, userId });
+        if (!content) {
+            res.status(404).json({ message: 'Content not found' });
+            return;
+        }
+
+        const flashcards = await generateFlashcards(content.title, content.description || '');
+        res.status(200).json({ flashcards });
+    } catch (error) {
+        console.error('❌ Flashcard error:', error);
+        res.status(500).json({ message: 'Server error during flashcard generation' });
+    }
+});
+
+// PUT /api/v1/content/:contentId/public - Update public status
+router.put('/:contentId/public', async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const { contentId } = req.params;
+        const { isPublic } = req.body;
+        const userId = req.userId;
+
+        const content = await Content.findOne({ _id: contentId, userId });
+        if (!content) {
+            res.status(404).json({ message: 'Content not found' });
+            return;
+        }
+
+        content.isPublic = isPublic;
+        await content.save();
+
+        res.status(200).json({ message: 'Public status updated', isPublic: content.isPublic });
+    } catch (error) {
+        console.error('❌ Status update error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// POST /api/v1/content/ocr - Extract text from image
+router.post('/ocr', async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const { image } = req.body;
+        if (!image) {
+            res.status(400).json({ message: 'Image data is required' });
+            return;
+        }
+
+        const result = await extractTextFromImage(image);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('❌ OCR error:', error);
+        res.status(500).json({ message: 'Server error during OCR' });
+    }
+});
+
+// POST /api/v1/content/summarize - Tag Summarization
+router.post('/summarize', async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const { tag } = req.body;
+        const userId = req.userId;
+
+        if (!tag) {
+            res.status(400).json({ message: 'Tag is required' });
+            return;
+        }
+
+        // 1. Find the tag ID
+        const tagDoc = await Tag.findOne({ title: tag.toLowerCase() });
+        if (!tagDoc) {
+            res.status(404).json({ message: 'Tag not found' });
+            return;
+        }
+
+        // 2. Fetch all content for this tag and user
+        const contents = await Content.find({
+            userId,
+            tags: tagDoc._id
+        }).select('title description');
+
+        if (contents.length === 0) {
+            res.status(200).json({ summary: "No content found for this tag to summarize." });
+            return;
+        }
+
+        // 3. Generate summary
+        const summary = await summarizeTagContent(tag, contents.map(c => ({
+            title: c.title,
+            description: c.description
+        })));
+
+        res.status(200).json({ summary, count: contents.length });
+    } catch (error) {
+        console.error('❌ Summarization error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// POST /api/v1/content/chat - AI Query Chat
+router.post('/chat', async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const { query } = req.body;
+        const userId = req.userId;
+
+        if (!query) {
+            res.status(400).json({ message: 'Query is required' });
+            return;
+        }
+
+        // 1. Generate Query Embedding
+        const queryEmbedding = await generateEmbedding(query);
+
+        // 2. Perform Vector Search to get context
+        const contextResults = await Content.aggregate([
+            {
+                $vectorSearch: {
+                    index: "vector_index",
+                    path: "embedding",
+                    queryVector: queryEmbedding,
+                    numCandidates: 50,
+                    limit: 10,
+                    filter: { userId: { $eq: userId } }
+                }
+            },
+            {
+                $project: {
+                    title: 1,
+                    description: 1,
+                    type: 1
+                }
+            }
+        ]);
+
+        // 3. Format Context
+        const contextString = contextResults
+            .map(r => `Title: ${r.title}\nType: ${r.type}\nDescription: ${r.description || 'N/A'}`)
+            .join('\n\n');
+
+        // 4. Get response from Gemini
+        const answer = await chatWithContext(query, contextString);
+
+        res.status(200).json({ answer, context: contextResults });
+    } catch (error) {
+        console.error('❌ Chat error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });

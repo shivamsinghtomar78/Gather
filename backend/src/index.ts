@@ -8,6 +8,7 @@ import authRoutes from './routes/auth';
 import contentRoutes from './routes/content';
 import brainRoutes from './routes/brain';
 import searchRoutes from './routes/search';
+import profileRoutes from './routes/profile';
 
 dotenv.config();
 
@@ -72,7 +73,7 @@ app.use(cors({
     maxAge: 600 // Cache preflight for 10 minutes
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Request logging middleware - MUST be before routes
 app.use((req, res, next) => {
@@ -114,6 +115,7 @@ app.use('/api/v1', authRoutes);
 app.use('/api/v1/content', contentRoutes);
 app.use('/api/v1/brain', brainRoutes);
 app.use('/api/v1/search', searchRoutes);
+app.use('/api/v1/profile', profileRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

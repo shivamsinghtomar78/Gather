@@ -9,8 +9,19 @@ import { ShareBrainModal } from '@/components/ShareBrainModal';
 import { SearchBar } from '@/components/SearchBar';
 import { Button } from '@/components/ui/button';
 import { authApi, contentApi, searchApi, tokenManager } from '@/lib/api';
-import { Plus, Share2, LogOut } from 'lucide-react';
+import { Plus, Share2, LogOut, Grid, X, Tag, Maximize2 } from 'lucide-react';
 import { io } from 'socket.io-client';
+import Masonry from 'react-masonry-css';
+import { SkeletonCard } from '@/components/SkeletonCard';
+import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { ChatInterface } from '@/components/ChatInterface';
+import { MindMapView } from '@/components/MindMapView';
+
+const Brain3D = dynamic(() => import('@/components/Brain3D').then(mod => mod.Brain3D), {
+    ssr: false,
+    loading: () => <div className="w-full h-full bg-purple-500/5 animate-pulse rounded-full" />
+});
 
 interface Content {
     id: string;
@@ -20,6 +31,7 @@ interface Content {
     imageUrl?: string;
     description?: string;
     tags: string[];
+    isPublic?: boolean;
     createdAt?: string;
 }
 
@@ -30,9 +42,11 @@ export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState<FilterType>('all');
     const [addModalOpen, setAddModalOpen] = useState(false);
     const [shareModalOpen, setShareModalOpen] = useState(false);
+    const [isMindMapOpen, setIsMindMapOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Content[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
     // Get API base URL for socket connection
     const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -145,6 +159,13 @@ export default function DashboardPage() {
         setSearchResults([]);
     };
 
+    const toggleTag = (tag: string) => {
+        setSelectedTags(prev =>
+            prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+        );
+        setActiveFilter('tags');
+    };
+
     const recentActivity = useMemo(() => {
         return [...content]
             .sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime())
@@ -157,24 +178,39 @@ export default function DashboardPage() {
     }, [content]);
 
     const displayContent = useMemo(() => {
-        if (searchQuery) return searchResults;
+        let filtered = searchQuery ? searchResults : content;
 
-        switch (activeFilter) {
-            case 'smart-recent':
-                const oneDayAgo = new Date().getTime() - (24 * 60 * 60 * 1000);
-                return content.filter(item => new Date(item.createdAt || '').getTime() > oneDayAgo);
-            case 'smart-uncategorized':
-                return content.filter(item => !item.tags || item.tags.length === 0);
-            case 'smart-deepwork':
-                const deepWorkTags = ['deep', 'focus', 'study', 'work', 'project'];
-                return content.filter(item => item.tags?.some(tag => deepWorkTags.includes(tag.toLowerCase())));
-            case 'all':
-            case 'tags':
-                return content;
-            default:
-                return content.filter(c => c.type === activeFilter);
+        // Apply active filter if not searching
+        if (!searchQuery) {
+            switch (activeFilter) {
+                case 'smart-recent':
+                    const oneDayAgo = new Date().getTime() - (24 * 60 * 60 * 1000);
+                    filtered = filtered.filter(item => new Date(item.createdAt || '').getTime() > oneDayAgo);
+                    break;
+                case 'smart-uncategorized':
+                    filtered = filtered.filter(item => !item.tags || item.tags.length === 0);
+                    break;
+                case 'smart-deepwork':
+                    const deepWorkTags = ['deep', 'focus', 'study', 'work', 'project'];
+                    filtered = filtered.filter(item => item.tags?.some(tag => deepWorkTags.includes(tag.toLowerCase())));
+                    break;
+                case 'all':
+                case 'tags':
+                    break;
+                default:
+                    filtered = filtered.filter(c => c.type === activeFilter);
+            }
         }
-    }, [content, searchQuery, searchResults, activeFilter]);
+
+        // Apply tag filtering if selectedTags exist
+        if (selectedTags.length > 0) {
+            filtered = filtered.filter(item =>
+                selectedTags.every(tag => item.tags.includes(tag))
+            );
+        }
+
+        return filtered;
+    }, [content, searchQuery, searchResults, activeFilter, selectedTags]);
 
     const getPageTitle = () => {
         switch (activeFilter) {
@@ -192,8 +228,17 @@ export default function DashboardPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+            <div className="min-h-screen bg-slate-950">
+                <Sidebar
+                    activeFilter={activeFilter}
+                    onFilterChange={setActiveFilter}
+                />
+                <main className="ml-64 p-8">
+                    <div className="h-40 mb-8 border-b border-purple-500/10" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)}
+                    </div>
+                </main>
             </div>
         );
     }
@@ -206,7 +251,7 @@ export default function DashboardPage() {
                 recentActivity={recentActivity}
             />
 
-            <main className="ml-64 min-h-screen">
+            <main className="lg:ml-64 min-h-screen pb-20 lg:pb-0">
                 <header className="sticky top-0 z-40 bg-slate-900/50 backdrop-blur-md border-b border-purple-500/10">
                     <div className="px-8 py-4 space-y-4">
                         <div className="flex items-center justify-between">
@@ -215,6 +260,14 @@ export default function DashboardPage() {
                                 <Button variant="outline" className="gap-2" onClick={() => setShareModalOpen(true)}>
                                     <Share2 className="w-4 h-4" />
                                     Share Brain
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="gap-2 bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 border-purple-500/20"
+                                    onClick={() => setIsMindMapOpen(true)}
+                                >
+                                    <Maximize2 className="w-4 h-4" />
+                                    Mind Map
                                 </Button>
                                 <Button className="gap-2" onClick={() => setAddModalOpen(true)}>
                                     <Plus className="w-4 h-4" />
@@ -225,45 +278,113 @@ export default function DashboardPage() {
                                 </Button>
                             </div>
                         </div>
-                        <SearchBar onSearch={handleSearch} onClear={handleClearSearch} isSearching={isSearching} />
-                        {searchQuery && (
-                            <p className="text-sm text-slate-400">
-                                Found <span className="text-purple-400 font-semibold">{searchResults.length}</span> results for "{searchQuery}"
-                            </p>
-                        )}
+
+                        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+                            <div className="flex-1 w-full">
+                                <SearchBar onSearch={handleSearch} onClear={handleClearSearch} isSearching={isSearching} />
+                            </div>
+
+                            <div className="hidden lg:block w-48 h-32 relative">
+                                <Brain3D tags={Array.from(new Set(content.flatMap(c => c.tags)))} onTagClick={toggleTag} />
+                            </div>
+                        </div>
+
+                        <AnimatePresence>
+                            {(searchQuery || selectedTags.length > 0) && (
+                                <motion.div
+                                    className="flex flex-wrap gap-2 pt-2"
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                >
+                                    {searchQuery && (
+                                        <div className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded-md flex items-center gap-2 border border-purple-500/30">
+                                            Search: {searchQuery}
+                                            <button onClick={handleClearSearch}><X className="w-3 h-3 hover:text-white" /></button>
+                                        </div>
+                                    )}
+                                    {selectedTags.map(tag => (
+                                        <div key={tag} className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-md flex items-center gap-2 border border-indigo-500/30">
+                                            <Tag className="w-3 h-3" />
+                                            {tag}
+                                            <button onClick={() => toggleTag(tag)}><X className="w-3 h-3 hover:text-white" /></button>
+                                        </div>
+                                    ))}
+                                    {displayContent.length > 0 && (
+                                        <span className="text-xs text-slate-500 self-center">
+                                            {displayContent.length} results
+                                        </span>
+                                    )}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </header>
 
                 <div className="p-8">
                     {displayContent.length === 0 ? (
-                        <div className="text-center py-16">
-                            <Plus className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-slate-100 mb-2">No items found</h3>
-                            <p className="text-sm text-slate-400 mb-6">Try adjusting your filters or adding new content.</p>
-                            <Button onClick={() => setAddModalOpen(true)}>Add Content</Button>
+                        <div className="text-center py-24 glass rounded-3xl border-dashed border-2 border-purple-500/10">
+                            <div className="relative w-32 h-32 mx-auto mb-6">
+                                <div className="absolute inset-0 bg-purple-500/20 blur-2xl rounded-full animate-pulse" />
+                                <Grid className="w-16 h-16 text-slate-700 absolute inset-0 m-auto" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-100 mb-2">Your Mind is Clear</h3>
+                            <p className="text-sm text-slate-400 mb-8 max-w-xs mx-auto">This space is ready for your next big idea. Start by adding a tweet, video, or link.</p>
+                            <Button className="glow-purple" onClick={() => setAddModalOpen(true)}>
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add Your First Item
+                            </Button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {displayContent.map((item) => (
-                                <ContentCard
-                                    key={item.id}
-                                    id={item.id}
-                                    type={item.type}
-                                    title={item.title}
-                                    link={item.link}
-                                    imageUrl={item.imageUrl}
-                                    description={item.description}
-                                    tags={item.tags}
-                                    onDelete={handleDelete}
-                                />
-                            ))}
-                        </div>
+                        <Masonry
+                            breakpointCols={{
+                                default: 3,
+                                1100: 2,
+                                700: 1
+                            }}
+                            className="flex -ml-6 w-auto"
+                            columnClassName="pl-6 bg-clip-padding"
+                        >
+                            <AnimatePresence mode='popLayout'>
+                                {displayContent.map((item) => (
+                                    <motion.div
+                                        key={item.id}
+                                        className="mb-6"
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
+                                        transition={{ duration: 0.2 }}
+                                    >
+                                        <ContentCard
+                                            id={item.id}
+                                            type={item.type}
+                                            title={item.title}
+                                            link={item.link}
+                                            imageUrl={item.imageUrl}
+                                            description={item.description}
+                                            tags={item.tags}
+                                            isPublic={item.isPublic}
+                                            isOwner={true}
+                                            onDelete={handleDelete}
+                                            searchQuery={searchQuery}
+                                        />
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </Masonry>
                     )}
                 </div>
             </main>
 
             <AddContentModal open={addModalOpen} onOpenChange={setAddModalOpen} onSuccess={fetchContent} />
             <ShareBrainModal open={shareModalOpen} onOpenChange={setShareModalOpen} contentCount={content.length} />
+            <ChatInterface />
+            <MindMapView
+                content={content}
+                isOpen={isMindMapOpen}
+                onClose={() => setIsMindMapOpen(false)}
+            />
         </div>
     );
 }

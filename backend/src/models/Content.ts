@@ -12,6 +12,7 @@ export interface IContent extends Document {
     tags: Types.ObjectId[];
     userId: Types.ObjectId;
     sharedWith: Types.ObjectId[];
+    isPublic: boolean;
 }
 
 const contentTypes: ContentType[] = ['document', 'tweet', 'youtube', 'link'];
@@ -52,7 +53,11 @@ const contentSchema = new Schema<IContent>({
     sharedWith: [{
         type: Schema.Types.ObjectId,
         ref: 'User'
-    }]
+    }],
+    isPublic: {
+        type: Boolean,
+        default: false
+    }
 }, {
     timestamps: true
 });
