@@ -111,19 +111,15 @@ router.post('/signup', signupLimiter, async (req: Request, res: Response): Promi
         const { username, email, password } = validation.data;
         console.log(`✅ Validation passed for user: ${username}, email: ${email}`);
 
-        // Check if user already exists by username
-        const existingUsername = await User.findOne({ username });
-        if (existingUsername) {
-            console.log(`⚠️ Username already exists: ${username}`);
-            res.status(403).json({ message: 'User already exists with this username' });
-            return;
-        }
-
-        // Check if user already exists by email
-        const existingEmail = await User.findOne({ email: email.toLowerCase() });
-        if (existingEmail) {
-            console.log(`⚠️ Email already exists: ${email}`);
-            res.status(403).json({ message: 'User already exists with this email' });
+        // Check if user already exists
+        // Email must be unique. Username can be duplicate across different emails.
+        const existingUser = await User.findOne({ email: email.toLowerCase() });
+        if (existingUser) {
+            console.log(`⚠️ User already exists with email: ${email}`);
+            res.status(403).json({
+                message: 'An account with this email already exists.',
+                code: 'USER_EXISTS'
+            });
             return;
         }
 
