@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { Server } from 'socket.io';
+import { createServer } from 'http';
 import { connectDB } from './config/db';
 import authRoutes from './routes/auth';
 import contentRoutes from './routes/content';
@@ -10,6 +12,17 @@ import searchRoutes from './routes/search';
 dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+    cors: {
+        origin: "*", // In production this should be restricted
+        methods: ["GET", "POST"]
+    }
+});
+
+// Attach io to app for use in routes
+app.set('io', io);
+
 const PORT = process.env.PORT || 3000;
 
 // Trust proxy for Render/Cloudflare
@@ -146,8 +159,9 @@ app.use((req, res) => {
 
 // Connect to database and start server
 connectDB().then(() => {
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
         console.log(`🚀 Gather API running on http://localhost:${PORT}`);
+        console.log(`📡 Real-time Socket.io server ready`);
     });
 }).catch((error) => {
     console.error('Failed to connect to database:', error);

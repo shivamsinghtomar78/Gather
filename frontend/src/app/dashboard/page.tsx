@@ -10,6 +10,7 @@ import { SearchBar } from '@/components/SearchBar';
 import { Button } from '@/components/ui/button';
 import { authApi, contentApi, searchApi, tokenManager } from '@/lib/api';
 import { Plus, Share2, LogOut } from 'lucide-react';
+import { io } from 'socket.io-client';
 
 interface Content {
     id: string;
@@ -33,10 +34,12 @@ export default function DashboardPage() {
     const [searchResults, setSearchResults] = useState<Content[]>([]);
     const [isSearching, setIsSearching] = useState(false);
 
+    // Get API base URL for socket connection
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
     const fetchContent = useCallback(async () => {
         try {
             const response = await contentApi.getAll();
-            // Backend should return createdAt, if not we might need to handle it
             setContent(response.data.content || []);
         } catch (error: any) {
             if (error.response?.status === 401) {
@@ -78,12 +81,32 @@ export default function DashboardPage() {
         };
 
         window.addEventListener('keydown', handleKeyDown);
+
+        // Real-time listener setup
+        const socket = io(socketUrl);
+        const userInfo = tokenManager.getUserInfo();
+
+        if (userInfo) {
+            console.log(`📡 Joining real-time channel for user: ${userInfo.username}`);
+
+            socket.on(`content:added:${userInfo.id}`, (data) => {
+                console.log('✨ New content added in another tab:', data.title);
+                fetchContent();
+            });
+
+            socket.on(`content:deleted:${userInfo.id}`, () => {
+                console.log('🗑️ Content deleted in another tab');
+                fetchContent();
+            });
+        }
+
         window.addEventListener('focus', checkAuth);
         return () => {
             window.removeEventListener('focus', checkAuth);
             window.removeEventListener('keydown', handleKeyDown);
+            socket.disconnect();
         };
-    }, [router, fetchContent]);
+    }, [router, fetchContent, socketUrl]);
 
     const handleDelete = async (id: string) => {
         try {
@@ -122,7 +145,6 @@ export default function DashboardPage() {
         setSearchResults([]);
     };
 
-    // Calculate Recent Activity from content state
     const recentActivity = useMemo(() => {
         return [...content]
             .sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime())
@@ -134,13 +156,11 @@ export default function DashboardPage() {
             }));
     }, [content]);
 
-    // Enhanced Filtering Logic including Smart Folders
     const displayContent = useMemo(() => {
         if (searchQuery) return searchResults;
 
         switch (activeFilter) {
             case 'smart-recent':
-                // Items added in last 24 hours
                 const oneDayAgo = new Date().getTime() - (24 * 60 * 60 * 1000);
                 return content.filter(item => new Date(item.createdAt || '').getTime() > oneDayAgo);
             case 'smart-uncategorized':

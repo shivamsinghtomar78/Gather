@@ -24,3 +24,29 @@ export async function generateEmbedding(text: string): Promise<number[]> {
         throw error;
     }
 }
+
+/**
+ * Uses Gemini to suggest tags based on title and description.
+ */
+export async function suggestTags(title: string, description?: string): Promise<string[]> {
+    try {
+        if (!process.env.GEMINI_API_KEY) return [];
+
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const prompt = `Analyze the following content title and description. Suggest exactly 3-4 relevant, short, one-word tags (in lowercase) for organizing this in a second brain. Return ONLY the tags separated by commas, no other text.
+        
+        Title: ${title}
+        Description: ${description || 'No description provided'}`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        return text.split(',')
+            .map(tag => tag.trim().toLowerCase())
+            .filter(tag => tag.length > 0 && tag.length < 20);
+    } catch (error) {
+        console.error("❌ Gemini Tag Suggestion Error:", error);
+        return [];
+    }
+}

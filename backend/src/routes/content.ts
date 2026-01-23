@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { Content } from '../models/Content';
 import { Tag } from '../models/Tag';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { generateEmbedding } from '../utils/gemini';
+import { generateEmbedding, suggestTags } from '../utils/gemini';
+import { scrapeMetadata } from '../utils/scraper';
 
 const router = Router();
 
@@ -29,19 +30,47 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const validation = contentSchema.safeParse(req.body);
         if (!validation.success) {
-            res.status(411).json({
-                message: 'Error in inputs',
-                errors: validation.error.errors
-            });
+            res.status(411).json({ message: 'Error in inputs', errors: validation.error.errors });
             return;
         }
 
-        const { type, link, title, tags, imageUrl, description } = validation.data;
+        let { type, link, title, tags, imageUrl, description } = validation.data;
         const userId = req.userId;
+
+        // 1. Deduplication (Check for existing link for this user)
+        if (link) {
+            const existingContent = await Content.findOne({ link, userId });
+            if (existingContent) {
+                res.status(200).json({
+                    message: 'Content updated (Duplicate link)',
+                    content: existingContent
+                });
+                return;
+            }
+        }
+
+        // 2. Auto-Scraping (if it's a link-based type and metadata is missing)
+        if (link && (!title || !imageUrl || !description)) {
+            const metadata = await scrapeMetadata(link);
+            title = title || metadata.title || 'Untitled';
+            imageUrl = imageUrl || metadata.image;
+            description = description || metadata.description;
+        }
+
+        // 3. AI Auto-Tagging (if no tags provided)
+        let finalTags = tags || [];
+        if (finalTags.length === 0) {
+            try {
+                const suggested = await suggestTags(title, description);
+                finalTags = suggested;
+            } catch (err) {
+                console.warn('⚠️ Auto-tagging failed');
+            }
+        }
 
         // Process tags - find existing or create new
         const tagIds = await Promise.all(
-            tags.map(async (tagTitle: string) => {
+            finalTags.map(async (tagTitle: string) => {
                 let tag = await Tag.findOne({ title: tagTitle.toLowerCase() });
                 if (!tag) {
                     tag = await Tag.create({ title: tagTitle.toLowerCase() });
@@ -50,12 +79,12 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
             })
         );
 
-        // Generate embedding for search (RAG)
+        // 4. Generate embedding for RAG
         let embedding: number[] | undefined;
         try {
-            embedding = await generateEmbedding(`${title} ${type}`);
+            embedding = await generateEmbedding(`${title} ${type} ${description || ''}`);
         } catch (error) {
-            console.warn('⚠️ Embedding generation failed, following back to keyword search:', error);
+            console.warn('⚠️ Embedding generation failed');
         }
 
         // Create content
@@ -70,6 +99,14 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
             userId
         });
 
+        // 5. Emit Real-time update
+        const io = req.app.get('io');
+        io.emit(`content:added:${userId}`, {
+            id: content._id,
+            title: content.title,
+            type: content.type
+        });
+
         res.status(200).json({
             message: 'Content added successfully',
             content: {
@@ -79,7 +116,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
                 title: content.title,
                 description: content.description,
                 imageUrl: content.imageUrl,
-                tags
+                tags: finalTags
             }
         });
     } catch (error) {
@@ -93,7 +130,12 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const userId = req.userId;
 
-        const contents = await Content.find({ userId })
+        const contents = await Content.find({
+            $or: [
+                { userId },
+                { sharedWith: userId }
+            ]
+        })
             .populate('tags', 'title')
             .sort({ createdAt: -1 });
 
@@ -144,6 +186,10 @@ router.delete('/', async (req: AuthRequest, res: Response): Promise<void> => {
 
         // Delete content
         await Content.findByIdAndDelete(contentId);
+
+        // Emit Real-time update
+        const io = req.app.get('io');
+        io.emit(`content:deleted:${userId}`, { contentId });
 
         res.status(200).json({ message: 'Delete succeeded' });
     } catch (error) {

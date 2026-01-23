@@ -11,6 +11,7 @@ export interface IContent extends Document {
     embedding?: number[];
     tags: Types.ObjectId[];
     userId: Types.ObjectId;
+    sharedWith: Types.ObjectId[];
 }
 
 const contentTypes: ContentType[] = ['document', 'tweet', 'youtube', 'link'];
@@ -47,7 +48,11 @@ const contentSchema = new Schema<IContent>({
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
-    }
+    },
+    sharedWith: [{
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+    }]
 }, {
     timestamps: true
 });

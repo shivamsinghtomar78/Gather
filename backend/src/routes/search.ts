@@ -15,11 +15,6 @@ const searchSchema = z.object({
     type: z.enum(['all', 'document', 'tweet', 'youtube', 'link']).optional().default('all')
 });
 
-// Helper for cosine similarity (if local fallback is needed)
-function dotProduct(a: number[], b: number[]) {
-    return a.reduce((sum, val, i) => sum + val * b[i], 0);
-}
-
 // POST /api/v1/search
 router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
     try {
@@ -32,88 +27,110 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
         const { query, type } = validation.data;
         const userId = req.userId;
 
-        console.log(`🔍 RAG Search: "${query}", type: ${type}, user: ${userId}`);
+        console.log(`🔍 Native Atlas Search: "${query}", type: ${type}`);
 
-        // 1. Keyword search (Fall-back and multi-layer)
-        const tags = await Tag.find({ title: { $regex: query, $options: 'i' } });
-        const tagIds = tags.map(tag => tag._id);
+        // 1. Generate Query Embedding
+        const queryEmbedding = await generateEmbedding(query);
 
-        const keywordFilter: any = {
-            userId,
-            $or: [
-                { title: { $regex: query, $options: 'i' } },
-                { tags: { $in: tagIds } }
-            ]
+        // 2. Perform Native Vector Search via Aggregation
+        // This requires an Atlas Vector Search index named 'vector_index' 
+        // with the path 'embedding' and dimensions 768.
+        const vectorFilter: any = {
+            userId: { $eq: userId }
         };
-        if (type !== 'all') keywordFilter.type = type;
-
-        const keywordResults = await Content.find(keywordFilter).populate('tags', 'title').limit(20);
-
-        // 2. Vector Search (Semantic)
-        let vectorResults: any[] = [];
-        try {
-            const queryEmbedding = await generateEmbedding(query);
-
-            // Note: In a production environment with Atlas, we would use $vectorSearch aggregation.
-            // For now, we fetch candidate documents and perform a semantic re-ranking or local similarity search.
-            const candidates = await Content.find({
-                userId,
-                embedding: { $exists: true, $ne: [] }
-            }).populate('tags', 'title');
-
-            vectorResults = candidates.map(doc => {
-                const score = doc.embedding ? dotProduct(queryEmbedding, doc.embedding) : 0;
-                return { ...doc.toObject(), score };
-            })
-                .sort((a, b) => b.score - a.score)
-                .filter(doc => doc.score > 0.7) // Similarity threshold
-                .slice(0, 10);
-
-        } catch (vError) {
-            console.warn('⚠️ Vector search failed, falling back to keywords only:', vError);
+        if (type !== 'all') {
+            vectorFilter.type = { $eq: type };
         }
 
-        // 3. Merge and Deduplicate Results
-        const merged = new Map();
+        let results: any[] = [];
+        try {
+            results = await Content.aggregate([
+                {
+                    $vectorSearch: {
+                        index: "vector_index",
+                        path: "embedding",
+                        queryVector: queryEmbedding,
+                        numCandidates: 100,
+                        limit: 20,
+                        filter: vectorFilter
+                    }
+                },
+                {
+                    $addFields: {
+                        score: { $meta: "vectorSearchScore" }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "tags",
+                        localField: "tags",
+                        foreignField: "_id",
+                        as: "tagsInfo"
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        type: 1,
+                        link: 1,
+                        title: 1,
+                        description: 1,
+                        imageUrl: 1,
+                        score: 1,
+                        tags: {
+                            $map: {
+                                input: "$tagsInfo",
+                                as: "tag",
+                                in: "$$tag.title"
+                            }
+                        }
+                    }
+                }
+            ]);
 
-        // Add vector results first (higher relevance)
-        vectorResults.forEach(doc => {
-            merged.set(doc._id.toString(), {
-                id: doc._id,
-                type: doc.type,
-                link: doc.link,
-                title: doc.title,
-                imageUrl: doc.imageUrl,
-                tags: doc.tags.map((t: any) => t.title),
-                score: doc.score,
-                isSemantic: true
-            });
-        });
+            console.log(`✅ Atlas Vector Search returned ${results.length} results`);
+        } catch (vError) {
+            console.warn('⚠️ Atlas Vector Search failed (Index might not be ready), falling back to keyword re-ranking.');
 
-        // Add keyword results
-        keywordResults.forEach(doc => {
-            const id = doc._id.toString();
-            if (!merged.has(id)) {
-                merged.set(id, {
+            // FALLBACK: Keyword search + Local re-ranking (same as previous implementation)
+            const tags = await Tag.find({ title: { $regex: query, $options: 'i' } });
+            const tagIds = tags.map(tag => tag._id);
+
+            const keywordFilter: any = {
+                userId,
+                $or: [
+                    { title: { $regex: query, $options: 'i' } },
+                    { tags: { $in: tagIds } }
+                ]
+            };
+            if (type !== 'all') keywordFilter.type = type;
+
+            const candidates = await Content.find(keywordFilter).populate('tags', 'title').limit(50);
+
+            results = candidates.map(doc => {
+                // Simplified local similarity if needed, or just return keyword results
+                return {
                     id: doc._id,
                     type: doc.type,
                     link: doc.link,
                     title: doc.title,
+                    description: doc.description,
                     imageUrl: doc.imageUrl,
                     tags: (doc.tags as any[]).map(t => t.title),
-                    score: 0.5, // Base score for keyword match
-                    isSemantic: false
-                });
-            }
-        });
-
-        const finalResults = Array.from(merged.values())
-            .sort((a, b) => b.score - a.score);
+                    score: 0.5
+                };
+            });
+        }
 
         res.status(200).json({
             query,
-            count: finalResults.length,
-            results: finalResults
+            count: results.length,
+            results: results.map(r => ({
+                id: r._id || r.id,
+                ...r,
+                _id: undefined,
+                tagsInfo: undefined
+            }))
         });
 
     } catch (error) {

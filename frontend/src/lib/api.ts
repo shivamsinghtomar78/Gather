@@ -74,6 +74,17 @@ export const tokenManager = {
 
     isAuthenticated: (): boolean => {
         return !!tokenManager.getAccessToken();
+    },
+
+    getUserInfo: (): { id: string; username: string } | null => {
+        const token = tokenManager.getAccessToken();
+        if (!token) return null;
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return { id: payload.userId, username: payload.username };
+        } catch (e) {
+            return null;
+        }
     }
 };
 
