@@ -4,11 +4,12 @@ const isProd = process.env.NODE_ENV === 'production';
 let API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
     (isProd ? 'https://gather-zxaa.onrender.com' : 'http://localhost:3000');
 
-// Sanitize: Remove trailing slash
-API_BASE_URL = API_BASE_URL.replace(/\/$/, '');
+// Sanitize URL: Remove trailing slash and any /api/v1 suffix to prevent duplication
+API_BASE_URL = API_BASE_URL.replace(/\/$/, '').replace(/\/api\/v1$/, '');
 
 console.log(`🌐 API Mode: ${isProd ? 'Production' : 'Development'}`);
-console.log('🌐 API Base URL:', API_BASE_URL);
+console.log('🌐 API Base URL (sanitized):', API_BASE_URL);
+console.log('🌐 Full baseURL:', `${API_BASE_URL}/api/v1`);
 
 export const api = axios.create({
     baseURL: `${API_BASE_URL}/api/v1`,
