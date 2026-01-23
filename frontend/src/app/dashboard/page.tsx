@@ -8,7 +8,7 @@ import { AddContentModal } from '@/components/AddContentModal';
 import { ShareBrainModal } from '@/components/ShareBrainModal';
 import { SearchBar } from '@/components/SearchBar';
 import { Button } from '@/components/ui/button';
-import { contentApi, searchApi } from '@/lib/api';
+import { authApi, contentApi, searchApi, tokenManager } from '@/lib/api';
 import { Plus, Share2, LogOut } from 'lucide-react';
 
 type FilterType = 'all' | 'tweet' | 'youtube' | 'document' | 'link' | 'tags';
@@ -38,7 +38,7 @@ export default function DashboardPage() {
             setContent(response.data.content || []);
         } catch (error: any) {
             if (error.response?.status === 401) {
-                router.push('/auth');
+                router.push('/auth/signin');
             }
         } finally {
             setLoading(false);
@@ -46,12 +46,21 @@ export default function DashboardPage() {
     }, [router]);
 
     useEffect(() => {
-        const token = localStorage.getItem('gather_token');
-        if (!token) {
-            router.push('/auth');
-            return;
+        const checkAuth = () => {
+            if (!tokenManager.isAuthenticated()) {
+                router.push('/auth/signin');
+                return false;
+            }
+            return true;
+        };
+
+        if (checkAuth()) {
+            fetchContent();
         }
-        fetchContent();
+
+        // Re-verify on window focus (handle case where user logged out in another tab)
+        window.addEventListener('focus', checkAuth);
+        return () => window.removeEventListener('focus', checkAuth);
     }, [router, fetchContent]);
 
     const handleDelete = async (id: string) => {
@@ -63,8 +72,8 @@ export default function DashboardPage() {
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem('gather_token');
+    const handleLogout = async () => {
+        await authApi.logout();
         router.push('/');
     };
 

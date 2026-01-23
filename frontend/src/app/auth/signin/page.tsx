@@ -24,7 +24,6 @@ export default function SignInPage() {
         try {
             console.log('Attempting signin with email:', email);
             const response = await authApi.signin(email, password);
-            localStorage.setItem('gather_token', response.data.token);
             router.push('/dashboard');
         } catch (err: any) {
             console.error('Auth error:', err);

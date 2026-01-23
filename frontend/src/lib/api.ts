@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://gather-zxaa.onrender.com/api/v1';
 
@@ -11,15 +11,87 @@ export const api = axios.create({
     },
 });
 
-// Add auth token to requests
-api.interceptors.request.use((config) => {
+// Token storage keys
+const ACCESS_TOKEN_KEY = 'gather_token';
+const REFRESH_TOKEN_KEY = 'gather_refresh_token';
+
+// Token refresh state
+let isRefreshing = false;
+let failedQueue: Array<{
+    resolve: (token: string) => void;
+    reject: (error: unknown) => void;
+}> = [];
+
+// Process queued requests after token refresh
+const processQueue = (error: unknown, token: string | null = null) => {
+    failedQueue.forEach((prom) => {
+        if (error) {
+            prom.reject(error);
+        } else if (token) {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
+// Helper functions for token management
+export const tokenManager = {
+    getAccessToken: (): string | null => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem(ACCESS_TOKEN_KEY);
+        }
+        return null;
+    },
+
+    getRefreshToken: (): string | null => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem(REFRESH_TOKEN_KEY);
+        }
+        return null;
+    },
+
+    setTokens: (accessToken: string, refreshToken: string) => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+            localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+        }
+    },
+
+    clearTokens: () => {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem(ACCESS_TOKEN_KEY);
+            localStorage.removeItem(REFRESH_TOKEN_KEY);
+        }
+    },
+
+    isAuthenticated: (): boolean => {
+        return !!tokenManager.getAccessToken();
+    }
+};
+
+// Cross-tab synchronization
+if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (event) => {
+        // If token was removed in another tab, redirect to signin
+        if (event.key === ACCESS_TOKEN_KEY && !event.newValue) {
+            console.log('🔄 Auth: Access token cleared in another tab. Redirecting to signin.');
+            window.location.href = '/auth/signin';
+        }
+        // If token was added/changed in another tab, we can optionally reload or just let the next request handle it
+        if (event.key === ACCESS_TOKEN_KEY && event.newValue) {
+            console.log('🔄 Auth: Access token updated in another tab.');
+        }
+    });
+}
+
+// Add auth token to requests with Bearer prefix
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
-    console.log('Request data:', config.data);
 
     if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('gather_token');
+        const token = tokenManager.getAccessToken();
         if (token) {
-            config.headers.Authorization = token;
+            config.headers.Authorization = `Bearer ${token}`;
         }
     }
     return config;
@@ -28,18 +100,84 @@ api.interceptors.request.use((config) => {
     return Promise.reject(error);
 });
 
-// Add response interceptor for logging
+// Response interceptor with automatic token refresh
 api.interceptors.response.use(
     (response) => {
-        console.log(`✅ API Response: ${response.status}`, response.data);
+        console.log(`✅ API Response: ${response.status}`);
         return response;
     },
-    (error) => {
+    async (error: AxiosError) => {
+        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
         console.error('❌ API Error:', {
             message: error.message,
-            response: error.response?.data,
+            response: (error.response?.data as Record<string, unknown>),
             status: error.response?.status
         });
+
+        // Handle token expiration
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            const errorData = error.response?.data as { code?: string };
+
+            // Check if it's a token expired error
+            if (errorData?.code === 'TOKEN_EXPIRED') {
+                if (isRefreshing) {
+                    // Wait for token refresh to complete
+                    return new Promise((resolve, reject) => {
+                        failedQueue.push({ resolve, reject });
+                    }).then((token) => {
+                        originalRequest.headers.Authorization = `Bearer ${token}`;
+                        return api(originalRequest);
+                    }).catch((err) => {
+                        return Promise.reject(err);
+                    });
+                }
+
+                originalRequest._retry = true;
+                isRefreshing = true;
+
+                const refreshToken = tokenManager.getRefreshToken();
+
+                if (!refreshToken) {
+                    // No refresh token, redirect to login
+                    tokenManager.clearTokens();
+                    if (typeof window !== 'undefined') {
+                        window.location.href = '/auth/signin';
+                    }
+                    return Promise.reject(error);
+                }
+
+                try {
+                    // Try to refresh the token
+                    const response = await axios.post(`${API_BASE_URL}/refresh`, {
+                        refreshToken
+                    });
+
+                    const { accessToken, refreshToken: newRefreshToken } = response.data;
+
+                    tokenManager.setTokens(accessToken, newRefreshToken);
+
+                    // Update authorization header for all pending requests
+                    processQueue(null, accessToken);
+
+                    // Retry the original request
+                    originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+                    return api(originalRequest);
+                } catch (refreshError) {
+                    // Refresh failed, redirect to login
+                    processQueue(refreshError, null);
+                    tokenManager.clearTokens();
+
+                    if (typeof window !== 'undefined') {
+                        window.location.href = '/auth/signin';
+                    }
+                    return Promise.reject(refreshError);
+                } finally {
+                    isRefreshing = false;
+                }
+            }
+        }
+
         return Promise.reject(error);
     }
 );
@@ -49,8 +187,45 @@ export const authApi = {
     signup: (username: string, email: string, password: string) =>
         api.post('/signup', { username, email, password }),
 
-    signin: (email: string, password: string) =>
-        api.post('/signin', { email, password }),
+    signin: async (email: string, password: string) => {
+        const response = await api.post('/signin', { email, password });
+
+        // Store both tokens
+        if (response.data.accessToken && response.data.refreshToken) {
+            tokenManager.setTokens(response.data.accessToken, response.data.refreshToken);
+        }
+
+        return response;
+    },
+
+    refresh: (refreshToken: string) =>
+        api.post('/refresh', { refreshToken }),
+
+    logout: async () => {
+        const refreshToken = tokenManager.getRefreshToken();
+        try {
+            await api.post('/logout', { refreshToken });
+        } finally {
+            tokenManager.clearTokens();
+        }
+    },
+
+    logoutAll: async () => {
+        try {
+            await api.post('/logout-all');
+        } finally {
+            tokenManager.clearTokens();
+        }
+    },
+
+    getSessions: () =>
+        api.get('/sessions'),
+
+    revokeSession: (sessionId: number) =>
+        api.delete(`/sessions/${sessionId}`),
+
+    getMe: () =>
+        api.get('/me'),
 };
 
 // Content API

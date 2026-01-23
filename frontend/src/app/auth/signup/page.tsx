@@ -28,7 +28,6 @@ export default function SignUpPage() {
             // After signup, sign in automatically
             console.log('Signup successful, attempting auto-login...');
             const response = await authApi.signin(email, password);
-            localStorage.setItem('gather_token', response.data.token);
             router.push('/dashboard');
         } catch (err: any) {
             console.error('Auth error:', err);

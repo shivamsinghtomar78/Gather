@@ -31,12 +31,10 @@ export default function AuthPage() {
                 await authApi.signup(username, email, password);
                 // After signup, sign in automatically
                 console.log('Signup successful, attempting auto-login...');
-                const response = await authApi.signin(email, password);
-                localStorage.setItem('gather_token', response.data.token);
+                await authApi.signin(email, password);
             } else {
                 console.log('Attempting signin with email:', email);
-                const response = await authApi.signin(email, password);
-                localStorage.setItem('gather_token', response.data.token);
+                await authApi.signin(email, password);
             }
 
             router.push('/dashboard');
