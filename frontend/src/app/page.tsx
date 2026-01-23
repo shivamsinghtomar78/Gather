@@ -5,6 +5,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Brain, ArrowRight, Twitter, Video, FileText, Link2, Sparkles } from 'lucide-react';
+import { GatherWatermark } from '@/components/GatherWatermark';
 
 // Dynamic import for Three.js (client-only)
 const Brain3D = dynamic(() => import('@/components/Brain3D').then(mod => mod.Brain3D), {
@@ -134,15 +135,15 @@ export default function LandingPage() {
           </motion.div>
 
           <div className="flex items-center gap-3">
-            <Link href="/auth">
+            <Link href="/auth/signin">
               <Button variant="ghost" className="font-medium text-slate-300 hover:text-white hover:bg-slate-800/50">
-                Sign In
+                Login
               </Button>
             </Link>
-            <Link href="/auth">
+            <Link href="/auth/signup">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 shadow-lg glow-purple border-0">
-                  Get Started
+                  Sign Up
                 </Button>
               </motion.div>
             </Link>
@@ -156,7 +157,10 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <motion.div
-              className="relative z-10"
+              className="relative z-10 p-8 rounded-3xl bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-2xl"
+              style={{
+                boxShadow: '0 8px 32px 0 rgba(139, 92, 246, 0.1), inset 0 1px 1px 0 rgba(255, 255, 255, 0.05)'
+              }}
               variants={staggerContainer}
               initial="hidden"
               animate="visible"
@@ -185,7 +189,7 @@ export default function LandingPage() {
               <motion.p
                 variants={fadeInUp}
                 custom={2}
-                className="text-lg text-slate-400 mb-8 max-w-md leading-relaxed"
+                className="text-lg text-slate-300 mb-8 max-w-md leading-relaxed"
               >
                 Store tweets, videos, and links in one beautiful space.
                 Never forget an idea again.
@@ -196,7 +200,7 @@ export default function LandingPage() {
                 custom={3}
                 className="flex flex-wrap gap-4"
               >
-                <Link href="/auth">
+                <Link href="/auth/signup">
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                     <Button size="lg" className="gap-2 px-8 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 shadow-xl glow-purple border-0">
                       Start Free
@@ -214,9 +218,10 @@ export default function LandingPage() {
 
             {/* Right - 3D Brain + Floating Card */}
             <div className="relative lg:h-[600px] h-[400px]">
-              {/* 3D Brain */}
+              {/* 3D Brain with Watermark */}
               <div className="absolute inset-0">
                 <Brain3D />
+                <GatherWatermark />
               </div>
 
               {/* Floating Preview Card */}
@@ -276,7 +281,7 @@ export default function LandingPage() {
         transition={{ delay: 1.5 }}
       >
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <p className="text-sm text-slate-600">© 2024 Gather</p>
+          <p className="text-sm text-slate-600">© Gather</p>
           <div className="flex gap-6">
             <a href="#" className="text-sm text-slate-600 hover:text-slate-400 transition-colors">
               Privacy

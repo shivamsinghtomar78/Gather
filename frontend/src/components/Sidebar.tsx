@@ -65,7 +65,7 @@ export function Sidebar({ activeFilter, onFilterChange }: SidebarProps) {
             {/* Footer */}
             <div className="p-4 border-t border-purple-500/10">
                 <p className="text-xs text-slate-400 text-center">
-                    © 2024 Gather
+                    © Gather
                 </p>
             </div>
         </aside>
