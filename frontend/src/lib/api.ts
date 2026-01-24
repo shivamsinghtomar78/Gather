@@ -257,6 +257,9 @@ export const authApi = {
 
     resetPassword: (token: string, newPassword: string) =>
         api.post('/reset-password', { token, newPassword }),
+
+    changePassword: (oldPassword: string, newPassword: string) =>
+        api.post('/change-password', { oldPassword, newPassword }),
 };
 
 // Content API
@@ -280,6 +283,9 @@ export const contentApi = {
 export const profileApi = {
     getProfile: (username: string) =>
         api.get(`/profile/${username}`),
+
+    updateProfile: (data: { displayName?: string; bio?: string; profilePicUrl?: string }) =>
+        api.put('/profile/update', data),
 };
 
 // Brain API

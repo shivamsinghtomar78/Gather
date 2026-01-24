@@ -17,6 +17,9 @@ export interface IUser extends Document {
     loginAttempts: number;
     lockUntil?: Date;
     isEmailVerified: boolean;
+    displayName?: string;
+    bio?: string;
+    profilePicUrl?: string;
     emailVerificationToken?: string;
     emailVerificationExpires?: Date;
     passwordResetToken?: string;
@@ -68,6 +71,12 @@ const userSchema = new Schema<IUser>({
         type: Boolean,
         default: true
     },
+    displayName: String,
+    bio: {
+        type: String,
+        maxlength: 200
+    },
+    profilePicUrl: String,
     emailVerificationToken: String,
     emailVerificationExpires: Date,
     passwordResetToken: String,

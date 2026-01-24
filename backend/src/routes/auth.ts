@@ -59,6 +59,17 @@ const verifyEmailSchema = z.object({
     token: z.string()
 });
 
+const changePasswordSchema = z.object({
+    oldPassword: z.string(),
+    newPassword: z.string()
+        .min(8, 'Password must be at least 8 characters')
+        .max(20, 'Password must be at most 20 characters')
+        .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+        .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+        .regex(/[0-9]/, 'Password must contain at least one number')
+        .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Password must contain at least one special character')
+});
+
 // Helper function to generate tokens
 function generateTokens(userId: string, deviceInfo?: string) {
     const jwtSecret = process.env.JWT_SECRET!;
@@ -650,12 +661,61 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
                 id: user._id,
                 username: user.username,
                 email: user.email,
+                displayName: user.displayName,
+                bio: user.bio,
+                profilePicUrl: user.profilePicUrl,
                 isEmailVerified: user.isEmailVerified,
                 createdAt: user.createdAt
             }
         });
     } catch (error) {
         console.error('❌ Get user error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// POST /api/v1/change-password - Change password with old password verification
+router.post('/change-password', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const validation = changePasswordSchema.safeParse(req.body);
+        if (!validation.success) {
+            res.status(400).json({ message: 'Invalid input', errors: validation.error.errors });
+            return;
+        }
+
+        const { oldPassword, newPassword } = validation.data;
+        const userId = req.userId;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            res.status(401).json({ message: 'User not found' });
+            return;
+        }
+
+        // Verify old password
+        const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+        if (!isPasswordValid) {
+            res.status(403).json({ message: 'Incorrect current password' });
+            return;
+        }
+
+        // Hash and save new password
+        user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+        // Invalidate other sessions for security
+        const currentHashedRefreshToken = req.body.refreshToken ? hashToken(req.body.refreshToken) : null;
+        if (currentHashedRefreshToken) {
+            user.refreshTokens = user.refreshTokens.filter(rt => rt.token === currentHashedRefreshToken);
+        } else {
+            user.refreshTokens = [];
+        }
+
+        await user.save();
+
+        console.log(`✅ Password changed successfully for user: ${user.email}`);
+        res.status(200).json({ message: 'Password changed successfully' });
+    } catch (error) {
+        console.error('❌ Change password error:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
