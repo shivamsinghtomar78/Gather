@@ -250,8 +250,13 @@ export class AuthService {
     }
 
     static async getUser(userId: string) {
+        logger.debug(`🔍 AuthService.getUser fetching ${userId}`);
         const user = await User.findById(userId).select('-password -refreshTokens -emailVerificationToken -passwordResetToken');
-        if (!user) throw new Error('USER_NOT_FOUND');
+        if (!user) {
+            logger.warn(`❌ AuthService.getUser: User ${userId} not found in DB`);
+            throw new Error('USER_NOT_FOUND');
+        }
+        logger.debug(`✅ AuthService.getUser found ${user.email}`);
         return user;
     }
 }

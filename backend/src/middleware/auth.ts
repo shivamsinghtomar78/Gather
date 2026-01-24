@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import logger from '../utils/logger';
 
 export interface AuthRequest extends Request {
     userId?: string;
@@ -34,14 +35,17 @@ export const authMiddleware = (
 
         const jwtSecret = process.env.JWT_SECRET;
         if (!jwtSecret) {
+            logger.error('❌ Auth Middleware: JWT secret not configured');
             res.status(500).json({ message: 'JWT secret not configured' });
             return;
         }
 
         const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
+        logger.debug(`✅ Auth Middleware: Token verified for user ${decoded.userId}`);
 
         // Reject refresh tokens being used as access tokens
         if (decoded.type === 'refresh') {
+            logger.warn('❌ Auth Middleware: Refresh token used as access token');
             res.status(401).json({ message: 'Invalid token type' });
             return;
         }

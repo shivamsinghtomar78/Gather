@@ -142,6 +142,7 @@ export class AuthController {
 
     static async getMe(req: AuthRequest, res: Response): Promise<void> {
         try {
+            logger.debug(`👤 getMe called for user ${req.userId}`);
             if (!req.userId) {
                 res.status(401).json({ message: 'Unauthorized' });
                 return;
