@@ -11,9 +11,10 @@ import {
     User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { authApi } from '@/lib/api';
 
 export type FilterType = 'all' | 'tweet' | 'youtube' | 'document' | 'link';
 
@@ -37,8 +38,21 @@ const secondaryNavItems = [
 export function Sidebar({ activeFilter, onFilterChange }: SidebarProps) {
     const [isOpen, setIsOpen] = useState(false);
     const pathname = usePathname();
+    const [user, setUser] = useState<any>(null);
 
     const isDashboard = pathname === '/dashboard';
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const response = await authApi.getMe();
+                setUser(response.data.user);
+            } catch (error) {
+                // Silent fail if not logged in or error
+            }
+        };
+        fetchUser();
+    }, []);
 
     return (
         <>
@@ -99,13 +113,27 @@ export function Sidebar({ activeFilter, onFilterChange }: SidebarProps) {
                 >
                     <X className="w-6 h-6" />
                 </button>
-                {/* Logo */}
+                {/* Logo / Profile Link */}
                 <div className="p-6 border-b border-purple-500/10">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center glow-purple">
-                            <Brain className="w-6 h-6 text-white" />
+                    <Link href="/profile" className="flex items-center gap-3 group">
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center overflow-hidden shadow-lg glow-purple group-hover:scale-105 transition-all duration-300">
+                            {user?.profilePicUrl ? (
+                                <img src={user.profilePicUrl} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-slate-950">
+                                    <span className="text-sm font-black text-white">
+                                        {user?.username?.[0]?.toUpperCase() || <Brain className="w-6 h-6" />}
+                                    </span>
+                                </div>
+                            )}
                         </div>
-                    </div>
+                        <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white group-hover:text-purple-400 transition-colors">
+                                {user?.displayName || user?.username || 'Profile'}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">Settings</span>
+                        </div>
+                    </Link>
                 </div>
 
                 {/* Navigation */}

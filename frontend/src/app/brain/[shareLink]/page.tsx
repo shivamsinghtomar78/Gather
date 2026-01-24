@@ -20,6 +20,8 @@ interface Content {
 
 interface SharedBrain {
     username: string;
+    displayName?: string;
+    profilePicUrl?: string;
     content: Content[];
 }
 
@@ -92,21 +94,26 @@ export default function SharedBrainPage() {
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-6">
                         <Link href="/" className="flex items-center gap-3 group">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center shadow-lg glow-purple-sm group-hover:scale-105 transition-transform">
-                                <Brain className="w-6 h-6 text-white" />
+                            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center overflow-hidden shadow-lg glow-purple-sm group-hover:scale-105 transition-all duration-300">
+                                {data?.profilePicUrl ? (
+                                    <img src={data.profilePicUrl} alt="Owner" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-slate-950">
+                                        <span className="text-sm font-black text-white">
+                                            {data?.username?.[0]?.toUpperCase() || <Brain className="w-6 h-6" />}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </Link>
 
                         <div className="h-6 w-px bg-slate-800" />
 
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border border-purple-500/30 flex items-center justify-center">
-                                <span className="text-sm font-bold text-purple-400">
-                                    {data?.username[0].toUpperCase()}
-                                </span>
-                            </div>
                             <div className="flex flex-col">
-                                <span className="text-sm font-bold text-slate-200">{data?.username}&apos;s Brain</span>
+                                <span className="text-sm font-bold text-slate-200">
+                                    {data?.displayName || data?.username}&apos;s Brain
+                                </span>
                                 <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Public View</span>
                             </div>
                         </div>

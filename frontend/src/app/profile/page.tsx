@@ -340,19 +340,6 @@ export default function ProfilePage() {
                                 </div>
                             </aside>
 
-                            <div className="p-8 rounded-3xl bg-gradient-to-br from-purple-600 to-cyan-600 shadow-lg glow-purple relative overflow-hidden group hover:scale-[1.02] transition-transform cursor-pointer">
-                                <div className="relative z-10">
-                                    <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">Your Second Brain</p>
-                                    <h4 className="text-3xl font-black text-white mb-4 italic">Unleash Your Mind</h4>
-                                    <Button
-                                        onClick={() => router.push('/dashboard')}
-                                        className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white rounded-xl font-bold py-5"
-                                    >
-                                        Back to Dashboard
-                                    </Button>
-                                </div>
-                                <Brain className="absolute -bottom-4 -right-4 w-32 h-32 text-white/10 rotate-12 group-hover:rotate-0 transition-transform" />
-                            </div>
                         </div>
                     </div>
                 </div>

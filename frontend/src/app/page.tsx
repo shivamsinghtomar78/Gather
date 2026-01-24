@@ -4,7 +4,9 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
 import { Brain, ArrowRight, Twitter, Video, FileText, Link2, Sparkles } from 'lucide-react';
+import { authApi } from '@/lib/api';
 
 // Brain visual for landing page
 const BrainVisual = () => (
@@ -62,6 +64,20 @@ const cardItems = [
 ];
 
 export default function LandingPage() {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await authApi.getMe();
+        setUser(response.data.user);
+      } catch (error) {
+        // Silent fail
+      }
+    };
+    fetchUser();
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] overflow-hidden">
       {/* Animated Background Elements */}
@@ -127,24 +143,39 @@ export default function LandingPage() {
             className="flex items-center gap-3"
             whileHover={{ scale: 1.02 }}
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center shadow-lg glow-purple-sm">
-              <Brain className="w-6 h-6 text-white" />
-            </div>
+            <Link href={user ? "/profile" : "/"} className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center shadow-lg glow-purple-sm overflow-hidden">
+                {user?.profilePicUrl ? (
+                  <img src={user.profilePicUrl} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <Brain className="w-6 h-6 text-white" />
+                )}
+              </div>
+            </Link>
           </motion.div>
 
           <div className="flex items-center gap-3">
-            <Link href="/auth?mode=signin">
-              <Button variant="ghost" className="font-medium text-slate-300 hover:text-white hover:bg-slate-800/50">
-                Login
-              </Button>
-            </Link>
-            <Link href="/auth?mode=signup">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            {user ? (
+              <Link href="/dashboard">
                 <Button className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 shadow-lg glow-purple border-0">
-                  Sign Up
+                  Dashboard
                 </Button>
-              </motion.div>
-            </Link>
+              </Link>
+            ) : (
+              <Link href="/auth?mode=signin">
+                <Button variant="ghost" className="font-medium text-slate-300 hover:text-white hover:bg-slate-800/50">
+                  Login
+                </Button>
+              </Link>
+            )}
+
+            {!user && (
+              <Link href="/auth?mode=signup">
+                <Button className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 shadow-lg glow-purple border-0">
+                  Get Started
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </motion.nav>
