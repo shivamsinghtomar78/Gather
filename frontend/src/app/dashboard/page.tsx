@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { authApi, contentApi, tokenManager } from '@/lib/api';
 import { Plus, Share2, LogOut, Grid } from 'lucide-react';
 import { io } from 'socket.io-client';
-import Masonry from 'react-masonry-css';
 import { SkeletonCard } from '@/components/SkeletonCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -206,25 +205,17 @@ export default function DashboardPage() {
                             </Button>
                         </div>
                     ) : (
-                        <Masonry
-                            breakpointCols={{
-                                default: 3,
-                                1100: 2,
-                                700: 1
-                            }}
-                            className="flex -ml-6 w-auto"
-                            columnClassName="pl-6 bg-clip-padding"
-                        >
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             <AnimatePresence mode='popLayout'>
                                 {displayContent.map((item) => (
                                     <motion.div
                                         key={item.id}
-                                        className="mb-6"
                                         layout
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.9 }}
                                         transition={{ duration: 0.2 }}
+                                        className="h-full"
                                     >
                                         <ContentCard
                                             id={item.id}
@@ -241,7 +232,7 @@ export default function DashboardPage() {
                                     </motion.div>
                                 ))}
                             </AnimatePresence>
-                        </Masonry>
+                        </div>
                     )}
                 </div>
             </main>

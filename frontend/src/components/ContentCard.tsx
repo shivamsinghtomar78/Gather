@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import * as Dialog from '@radix-ui/react-dialog';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { MediaEmbed } from './MediaEmbed';
@@ -98,8 +99,17 @@ export function ContentCard({
     const cardContent = (
         <div
             onClick={() => setIsExpanded(true)}
-            className="bg-slate-900/50 border border-purple-500/20 rounded-xl p-5 hover:bg-slate-900/80 hover:border-purple-500/40 transition-all duration-200 group backdrop-blur-sm glow-purple-sm h-full flex flex-col cursor-pointer select-none ring-offset-slate-950 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+            className="bg-slate-900/60 border border-purple-500/20 rounded-2xl p-6 hover:border-purple-500/50 transition-all duration-300 group backdrop-blur-md glow-purple-sm h-full flex flex-col cursor-pointer select-none ring-offset-slate-950 focus:outline-none focus:ring-2 focus:ring-purple-500/50 relative overflow-hidden"
         >
+            {/* Beautiful Background Image */}
+            <div
+                className="absolute inset-0 opacity-[0.15] group-hover:opacity-[0.25] transition-opacity duration-500 pointer-events-none"
+                style={{
+                    backgroundImage: 'url(/assets/card-bg.png)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                }}
+            />
             {/* Header */}
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2 overflow-hidden">
@@ -107,42 +117,88 @@ export function ContentCard({
                     <h3 className="font-semibold text-slate-100 line-clamp-1">{title}</h3>
                 </div>
 
-                {/* Actions (Desktop Hover) */}
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    {isOwner && (
-                        <button
-                            onClick={togglePublic}
-                            className={cn(
-                                "p-1 px-1.5 transition-colors",
-                                isPublic ? "text-purple-400 hover:text-purple-300" : "text-slate-500 hover:text-slate-100"
-                            )}
-                            title={isPublic ? "Public (Visible on profile)" : "Private"}
-                            disabled={isUpdating}
-                        >
-                            {isPublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                        </button>
-                    )}
-                    {isOwner && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onEdit?.(id); }}
-                            className="p-1 px-1.5 text-slate-500 hover:text-slate-100"
-                            title="Edit"
-                        >
-                            <Pencil className="w-4 h-4" />
-                        </button>
-                    )}
-                    <button
-                        onClick={(e) => { e.stopPropagation(); setIsExpanded(true); }}
-                        className="p-1 px-1.5 text-slate-500 hover:text-slate-100"
-                    >
-                        <Expand className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-1 px-1.5 text-slate-500 hover:text-slate-100"
-                    >
-                        <MoreVertical className="w-4 h-4" />
-                    </button>
+                {/* Actions (Consolidated into Three Dots) */}
+                <div className="flex items-center shrink-0">
+                    <DropdownMenu.Root>
+                        <DropdownMenu.Trigger asChild>
+                            <button
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 rounded-lg transition-all"
+                            >
+                                <MoreVertical className="w-5 h-5" />
+                            </button>
+                        </DropdownMenu.Trigger>
+
+                        <DropdownMenu.Portal>
+                            <DropdownMenu.Content
+                                className="min-w-[180px] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-1.5 shadow-2xl z-[150] animate-in fade-in zoom-in duration-200"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <DropdownMenu.Item
+                                    onClick={() => setIsExpanded(true)}
+                                    className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-slate-300 rounded-lg hover:bg-white/10 hover:text-white outline-none cursor-pointer"
+                                >
+                                    <Expand className="w-4 h-4" />
+                                    Expand Details
+                                </DropdownMenu.Item>
+
+                                {isOwner && (
+                                    <>
+                                        <DropdownMenu.Item
+                                            onClick={() => onEdit?.(id)}
+                                            className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-slate-300 rounded-lg hover:bg-white/10 hover:text-white outline-none cursor-pointer"
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                            Edit Content
+                                        </DropdownMenu.Item>
+
+                                        <DropdownMenu.Item
+                                            onClick={(e: any) => togglePublic(e)}
+                                            className="flex items-center justify-between gap-3 px-3 py-2.5 text-xs font-medium text-slate-300 rounded-lg hover:bg-white/10 hover:text-white outline-none cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                {isPublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                                                Visibility
+                                            </div>
+                                            <span className={cn("text-[10px] uppercase font-bold px-1.5 py-0.5 rounded", isPublic ? "bg-purple-500/20 text-purple-400" : "bg-slate-800 text-slate-500")}>
+                                                {isPublic ? 'Public' : 'Private'}
+                                            </span>
+                                        </DropdownMenu.Item>
+                                    </>
+                                )}
+
+                                <DropdownMenu.Item
+                                    onClick={handleCopyLink}
+                                    disabled={!link}
+                                    className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-slate-300 rounded-lg hover:bg-white/10 hover:text-white outline-none cursor-pointer data-[disabled]:opacity-30"
+                                >
+                                    {isCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Link2 className="w-4 h-4" />}
+                                    {isCopied ? 'Copied Link!' : 'Copy Link'}
+                                </DropdownMenu.Item>
+
+                                <DropdownMenu.Item
+                                    onClick={() => onShare?.(id)}
+                                    className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-slate-300 rounded-lg hover:bg-white/10 hover:text-white outline-none cursor-pointer"
+                                >
+                                    <Share2 className="w-4 h-4" />
+                                    Share Brain
+                                </DropdownMenu.Item>
+
+                                {isOwner && (
+                                    <>
+                                        <DropdownMenu.Separator className="h-px bg-white/5 my-1 mx-1" />
+                                        <DropdownMenu.Item
+                                            onClick={() => onDelete(id)}
+                                            className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-red-400 rounded-lg hover:bg-red-500/10 hover:text-red-300 outline-none cursor-pointer"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            Delete Item
+                                        </DropdownMenu.Item>
+                                    </>
+                                )}
+                            </DropdownMenu.Content>
+                        </DropdownMenu.Portal>
+                    </DropdownMenu.Root>
                 </div>
             </div>
 
