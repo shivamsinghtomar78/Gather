@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { TagSummaryModal } from './TagSummaryModal';
 
 export type FilterType = 'all' | 'tweet' | 'youtube' | 'document' | 'link' | 'tags' | 'smart-recent' | 'smart-uncategorized' | 'smart-deepwork';
 
