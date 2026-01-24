@@ -41,6 +41,22 @@ export default function ProfilePage() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPasswords, setShowPasswords] = useState(false);
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB Limit
+                setMessage({ type: 'error', text: 'Image size should be less than 5MB' });
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProfilePicUrl(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     useEffect(() => {
         fetchUserData();
     }, []);
@@ -158,18 +174,24 @@ export default function ProfilePage() {
 
                                 <form onSubmit={handleUpdateProfile} className="space-y-6">
                                     <div className="flex flex-col sm:flex-row gap-8 items-start sm:items-center">
-                                        <div className="relative group">
-                                            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center overflow-hidden shadow-lg glow-purple-sm">
+                                        <label className="relative group cursor-pointer">
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                            />
+                                            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center overflow-hidden shadow-lg glow-purple-sm group-hover:scale-95 transition-transform">
                                                 {profilePicUrl ? (
                                                     <img src={profilePicUrl} alt="Avatar" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <span className="text-4xl font-black text-white">{user?.username?.[0]?.toUpperCase()}</span>
                                                 )}
                                             </div>
-                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-3xl pointer-events-none">
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-3xl">
                                                 <Camera className="w-6 h-6 text-white" />
                                             </div>
-                                        </div>
+                                        </label>
                                         <div className="flex-1 space-y-4 w-full">
                                             <div>
                                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Display Name</label>
