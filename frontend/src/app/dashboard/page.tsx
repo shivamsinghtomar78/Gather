@@ -258,6 +258,7 @@ export default function DashboardPage() {
                                             isOwner={true}
                                             onDelete={handleDelete}
                                             onEdit={handleEdit}
+                                            onShare={() => setShareModalOpen(true)}
                                         />
                                     </motion.div>
                                 ))}

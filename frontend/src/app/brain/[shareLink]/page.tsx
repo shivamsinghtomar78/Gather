@@ -12,7 +12,10 @@ interface Content {
     id: string;
     type: 'tweet' | 'youtube' | 'document' | 'link';
     title: string;
-    link: string;
+    link?: string;
+    description?: string;
+    imageUrl?: string;
+    isPublic?: boolean;
 }
 
 interface SharedBrain {
@@ -47,23 +50,29 @@ export default function SharedBrainPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center animate-pulse shadow-lg glow-purple">
+                    <Brain className="w-7 h-7 text-white" />
+                </div>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-                <div className="text-center">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Brain className="w-8 h-8 text-red-500" />
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-white">
+                <div className="text-center space-y-6 max-w-md">
+                    <div className="w-20 h-20 bg-red-500/10 border border-red-500/20 rounded-3xl flex items-center justify-center mx-auto shadow-lg">
+                        <Brain className="w-10 h-10 text-red-500" />
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Brain Not Found</h1>
-                    <p className="text-gray-500 mb-6">{error}</p>
-                    <Link href="/">
-                        <Button>Go to Homepage</Button>
+                    <div className="space-y-2">
+                        <h1 className="text-3xl font-bold tracking-tight">Brain Not Found</h1>
+                        <p className="text-slate-400">{error}</p>
+                    </div>
+                    <Link href="/" className="block">
+                        <Button className="w-full bg-slate-800 hover:bg-slate-700 text-white border-0 py-6">
+                            Go to Homepage
+                        </Button>
                     </Link>
                 </div>
             </div>
@@ -71,55 +80,71 @@ export default function SharedBrainPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-purple-500/30">
+            {/* Animated Background Elements */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-20 left-10 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px] animate-pulse" />
+                <div className="absolute bottom-20 right-10 w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-[120px] animate-pulse" />
+            </div>
+
             {/* Header */}
-            <header className="bg-white border-b border-gray-200">
+            <header className="sticky top-0 z-50 bg-slate-900/50 backdrop-blur-xl border-b border-purple-500/10">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link href="/" className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                    <div className="flex items-center gap-6">
+                        <Link href="/" className="flex items-center gap-3 group">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center shadow-lg glow-purple-sm group-hover:scale-105 transition-transform">
                                 <Brain className="w-6 h-6 text-white" />
                             </div>
                         </Link>
 
-                        <span className="text-gray-300">|</span>
+                        <div className="h-6 w-px bg-slate-800" />
 
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                                <span className="text-sm font-medium text-indigo-600">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border border-purple-500/30 flex items-center justify-center">
+                                <span className="text-sm font-bold text-purple-400">
                                     {data?.username[0].toUpperCase()}
                                 </span>
                             </div>
-                            <span className="font-medium text-gray-700">{data?.username}&apos;s Brain</span>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-bold text-slate-200">{data?.username}&apos;s Brain</span>
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Public View</span>
+                            </div>
                         </div>
                     </div>
 
-                    <Link href="/auth">
-                        <Button>Create Your Own</Button>
+                    <Link href="/auth?mode=signup">
+                        <Button className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 shadow-lg glow-purple border-0">
+                            Create Your Own
+                        </Button>
                     </Link>
                 </div>
             </header>
 
             {/* Content */}
-            <main className="max-w-7xl mx-auto px-6 py-8">
-                <div className="flex items-center gap-3 mb-8">
-                    <Link href="/" className="text-gray-400 hover:text-gray-600">
-                        <ArrowLeft className="w-5 h-5" />
-                    </Link>
-                    <h1 className="text-2xl font-bold text-gray-900">
-                        {data?.username}&apos;s Second Brain
-                    </h1>
-                    <span className="text-sm text-gray-500">
-                        ({data?.content.length || 0} items)
-                    </span>
+            <main className="relative z-10 max-w-7xl mx-auto px-6 py-12">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                            <Link href="/" className="p-2 -ml-2 text-slate-500 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors">
+                                <ArrowLeft className="w-5 h-5" />
+                            </Link>
+                            <h1 className="text-3xl font-bold text-white tracking-tight">
+                                Explore this Second Brain
+                            </h1>
+                        </div>
+                        <p className="text-slate-400 text-sm pl-9">
+                            Curated collection of {data?.content.length || 0} items by <span className="text-purple-400 font-medium">@{data?.username}</span>
+                        </p>
+                    </div>
                 </div>
 
                 {data?.content.length === 0 ? (
-                    <div className="text-center py-16">
-                        <p className="text-gray-500">This brain is empty.</p>
+                    <div className="text-center py-32 rounded-3xl border-2 border-dashed border-slate-800 bg-slate-900/20 backdrop-blur-sm">
+                        <Brain className="w-16 h-16 text-slate-700 mx-auto mb-4 opacity-20" />
+                        <p className="text-slate-500 font-medium">This brain is currently empty.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {data?.content.map((item) => (
                             <ContentCard
                                 key={item.id}
@@ -127,12 +152,23 @@ export default function SharedBrainPage() {
                                 type={item.type}
                                 title={item.title}
                                 link={item.link}
-                                onDelete={() => { }} // Read-only for shared content
+                                description={item.description}
+                                imageUrl={item.imageUrl}
+                                isPublic={item.isPublic}
+                                isOwner={false}
+                                onDelete={() => { }} // Read-only view
                             />
                         ))}
                     </div>
                 )}
             </main>
+
+            {/* Footer Watermark (Subtle) */}
+            <div className="py-12 text-center">
+                <p className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.3em]">
+                    Powered by Gather Brain
+                </p>
+            </div>
         </div>
     );
 }

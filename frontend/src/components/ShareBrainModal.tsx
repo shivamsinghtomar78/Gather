@@ -30,9 +30,11 @@ export function ShareBrainModal({ open, onOpenChange, contentCount }: ShareBrain
 
         try {
             const response = await brainApi.share(true);
-            const link = response.data.link;
-            // Make it a full URL
-            const fullLink = `${window.location.origin}${link}`;
+            const { hash, link } = response.data;
+
+            // Construct the frontend share URL
+            const shareHash = hash || link?.split('/').pop();
+            const fullLink = `${window.location.origin}/brain/${shareHash}`;
             setShareLink(fullLink);
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to generate share link');

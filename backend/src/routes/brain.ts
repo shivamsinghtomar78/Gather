@@ -42,6 +42,7 @@ router.post('/share', authMiddleware, async (req: AuthRequest, res: Response): P
 
             res.status(200).json({
                 message: 'Brain sharing enabled',
+                hash: existingLink.hash,
                 link: `/api/v1/brain/${existingLink.hash}`
             });
         } else {
@@ -87,6 +88,9 @@ router.get('/:shareLink', async (req: Request, res: Response): Promise<void> => 
             type: content.type,
             link: content.link,
             title: content.title,
+            description: content.description,
+            imageUrl: content.imageUrl,
+            isPublic: content.isPublic
         }));
 
         res.status(200).json({

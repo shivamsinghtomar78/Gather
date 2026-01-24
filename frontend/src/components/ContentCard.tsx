@@ -91,9 +91,13 @@ export function ContentCard({
     const handleCopyLink = () => {
         if (link) {
             navigator.clipboard.writeText(link);
-            setIsCopied(true);
-            setTimeout(() => setIsCopied(false), 2000);
+        } else {
+            // For notes/documents without a link, copy the content
+            const contentToCopy = `${title}\n\n${description || ''}`;
+            navigator.clipboard.writeText(contentToCopy);
         }
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
     };
 
     const cardContent = (
@@ -172,11 +176,10 @@ export function ContentCard({
 
                                     <DropdownMenu.Item
                                         onClick={handleCopyLink}
-                                        disabled={!link}
-                                        className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-slate-300 rounded-lg hover:bg-white/10 hover:text-white outline-none cursor-pointer data-[disabled]:opacity-30"
+                                        className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-slate-300 rounded-lg hover:bg-white/10 hover:text-white outline-none cursor-pointer"
                                     >
                                         {isCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Link2 className="w-4 h-4" />}
-                                        {isCopied ? 'Copied Link!' : 'Copy Link'}
+                                        {isCopied ? 'Copied Content!' : 'Copy Link / Note'}
                                     </DropdownMenu.Item>
 
                                     <DropdownMenu.Item
