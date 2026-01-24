@@ -14,6 +14,13 @@ dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
+
+// Critical Environment Check
+if (!process.env.JWT_SECRET) {
+    logger.error('CRITICAL: JWT_SECRET environment variable is not defined!');
+    process.exit(1);
+}
+
 const io = new Server(httpServer, {
     cors: {
         origin: "*", // In production this should be restricted

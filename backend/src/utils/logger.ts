@@ -11,7 +11,9 @@ const levels = {
 const level = () => {
     const env = process.env.NODE_ENV || 'development';
     const isDevelopment = env === 'development';
-    return isDevelopment ? 'debug' : 'warn';
+    // For debugging production issues, we'll temporarily set this to 'debug' or 'info'
+    // return isDevelopment ? 'debug' : 'warn';
+    return 'debug'; // FORCE DEBUG LEVEL FOR DIAGNOSIS
 };
 
 const colors = {
