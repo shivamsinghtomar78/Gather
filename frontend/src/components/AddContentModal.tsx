@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -18,6 +18,15 @@ interface AddContentModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onSuccess: () => void;
+    initialData?: {
+        id: string;
+        type: ContentType;
+        link?: string;
+        title: string;
+        description?: string;
+        imageUrl?: string;
+    };
+    mode?: 'add' | 'edit';
 }
 
 type ContentType = 'document' | 'tweet' | 'youtube' | 'link';
@@ -29,42 +38,32 @@ const contentTypes: { id: ContentType; label: string; icon: LucideIcon }[] = [
     { id: 'link', label: 'Link', icon: Link2 },
 ];
 
-export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentModalProps) {
-    const [type, setType] = useState<ContentType>('link');
-    const [link, setLink] = useState('');
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [imageUrl, setImageUrl] = useState('');
-    const [isProcessing, setIsProcessing] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+export function AddContentModal({ open, onOpenChange, onSuccess, initialData, mode = 'add' }: AddContentModalProps) {
+    const [type, setType] = useState<ContentType>(initialData?.type || 'link');
+    const [link, setLink] = useState(initialData?.link || '');
+    const [title, setTitle] = useState(initialData?.title || '');
+    const [description, setDescription] = useState(initialData?.description || '');
+    const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const handleOCR = async (file: File) => {
-        setIsProcessing(true);
-        try {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = async () => {
-                const base64 = reader.result as string;
-                const response = await contentApi.ocr(base64);
-                const { title, description } = response.data;
-
-                setTitle(title);
-                setDescription(description);
-                setType('document');
-            };
-        } catch (error) {
-            console.error('OCR failed:', error);
-        } finally {
-            setIsProcessing(false);
+    // Update state when initialData changes (for editing)
+    useEffect(() => {
+        if (initialData) {
+            setType(initialData.type);
+            setLink(initialData.link || '');
+            setTitle(initialData.title);
+            setDescription(initialData.description || '');
+            setImageUrl(initialData.imageUrl || '');
+        } else {
+            // Reset for 'add' mode
+            setType('link');
+            setLink('');
+            setTitle('');
+            setDescription('');
+            setImageUrl('');
         }
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) handleOCR(file);
-    };
+    }, [initialData, open]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -72,7 +71,13 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
         setLoading(true);
 
         try {
-            await contentApi.add({ type, link: link || undefined, title, description, imageUrl });
+            const payload = { type, link: link || undefined, title, description, imageUrl };
+
+            if (mode === 'edit' && initialData?.id) {
+                await contentApi.update(initialData.id, payload);
+            } else {
+                await contentApi.add(payload);
+            }
 
             // Micro-interactions
             if (window.navigator?.vibrate) {
@@ -97,17 +102,19 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
             oscillator.start();
             oscillator.stop(audioCtx.currentTime + 0.1);
 
-            // Reset form
-            setType('link');
-            setLink('');
-            setTitle('');
-            setDescription('');
-            setImageUrl('');
+            if (mode === 'add') {
+                // Reset form only in add mode
+                setType('link');
+                setLink('');
+                setTitle('');
+                setDescription('');
+                setImageUrl('');
+            }
 
             onSuccess();
             onOpenChange(false);
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to add content');
+            setError(err.response?.data?.message || `Failed to ${mode === 'edit' ? 'update' : 'add'} content`);
         } finally {
             setLoading(false);
         }
@@ -117,43 +124,15 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Add Content</DialogTitle>
+                    <DialogTitle>{mode === 'edit' ? 'Edit Content' : 'Add Content'}</DialogTitle>
                     <DialogDescription>
-                        Save a new piece of content to your second brain.
+                        {mode === 'edit'
+                            ? 'Update this item in your second brain.'
+                            : 'Save a new piece of content to your second brain.'}
                     </DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                    {/* OCR Upload Area */}
-                    <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isProcessing}
-                        className="w-full h-24 rounded-2xl border-2 border-dashed border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10 hover:border-purple-500/40 transition-all flex flex-col items-center justify-center gap-2 group relative overflow-hidden"
-                    >
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                        />
-                        {isProcessing ? (
-                            <>
-                                <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
-                                <span className="text-xs text-purple-400 font-medium animate-pulse">Analyzing Image...</span>
-                            </>
-                        ) : (
-                            <>
-                                <Camera className="w-6 h-6 text-slate-400 group-hover:text-purple-400 transition-colors" />
-                                <div className="text-center">
-                                    <span className="text-xs text-slate-300 font-bold block">Upload Image for AI OCR</span>
-                                    <span className="text-[10px] text-slate-500 uppercase tracking-wider">Extract text and title</span>
-                                </div>
-                                <Sparkles className="absolute top-2 right-2 w-4 h-4 text-purple-400/20 group-hover:text-purple-400 transition-colors" />
-                            </>
-                        )}
-                    </button>
                     {/* Content Type Selection */}
                     <div>
                         <label className="block text-sm font-medium text-slate-200 mb-2">
@@ -205,7 +184,7 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
                             value={link}
                             onChange={(e) => setLink(e.target.value)}
                             placeholder="https://..."
-                            required
+                            required={type !== 'document'}
                         />
                     </div>
 
@@ -253,7 +232,7 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
                             className="flex-1"
                             disabled={loading}
                         >
-                            {loading ? 'Adding...' : 'Add Content'}
+                            {loading ? 'Saving...' : (mode === 'edit' ? 'Update Content' : 'Add Content')}
                         </Button>
                     </div>
                 </form>

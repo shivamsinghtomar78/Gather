@@ -267,13 +267,10 @@ export const contentApi = {
         api.post('/content', data),
 
     delete: (contentId: string) =>
-        api.delete('/content', { data: { contentId } }),
+        api.delete(`/content/${contentId}`),
 
-    generateFlashcards: (contentId: string) =>
-        api.post('/content/flashcards', { contentId }),
-
-    ocr: (image: string) =>
-        api.post('/content/ocr', { image }),
+    update: (contentId: string, data: { type: string; link?: string; title: string; description?: string; imageUrl?: string }) =>
+        api.put(`/content/${contentId}`, data),
 
     updatePublicStatus: (contentId: string, isPublic: boolean) =>
         api.put(`/content/${contentId}/public`, { isPublic }),

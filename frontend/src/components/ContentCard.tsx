@@ -15,6 +15,7 @@ import {
     Calendar,
     Globe,
     Lock,
+    Pencil,
 } from 'lucide-react';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -35,6 +36,7 @@ export interface ContentCardProps {
     onShare?: (id: string) => void;
     isPublic?: boolean;
     isOwner?: boolean;
+    onEdit?: (id: string) => void;
 }
 
 const typeIcons = {
@@ -61,7 +63,8 @@ export function ContentCard({
     onDelete,
     onShare,
     isPublic: initialIsPublic = false,
-    isOwner = true
+    isOwner = true,
+    onEdit
 }: ContentCardProps) {
     const [isPublic, setIsPublic] = useState(initialIsPublic);
     const [isUpdating, setIsUpdating] = useState(false);
@@ -119,6 +122,15 @@ export function ContentCard({
                             {isPublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                         </button>
                     )}
+                    {isOwner && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onEdit?.(id); }}
+                            className="p-1 px-1.5 text-slate-500 hover:text-slate-100"
+                            title="Edit"
+                        >
+                            <Pencil className="w-4 h-4" />
+                        </button>
+                    )}
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsExpanded(true); }}
                         className="p-1 px-1.5 text-slate-500 hover:text-slate-100"
@@ -174,6 +186,16 @@ export function ContentCard({
                             <Expand className="w-4 h-4" />
                             Expand Details
                         </ContextMenu.Item>
+
+                        {isOwner && (
+                            <ContextMenu.Item
+                                onClick={() => onEdit?.(id)}
+                                className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-slate-300 rounded-lg hover:bg-slate-800 hover:text-white outline-none cursor-pointer"
+                            >
+                                <Pencil className="w-4 h-4" />
+                                Edit Item
+                            </ContextMenu.Item>
+                        )}
 
                         <ContextMenu.Item
                             onClick={() => link && window.open(link, '_blank')}

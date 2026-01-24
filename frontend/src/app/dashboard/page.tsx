@@ -32,6 +32,7 @@ export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState<FilterType>('all');
     const [addModalOpen, setAddModalOpen] = useState(false);
     const [shareModalOpen, setShareModalOpen] = useState(false);
+    const [editingContent, setEditingContent] = useState<Content | null>(null);
 
     // Get API base URL for socket connection
     const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -111,6 +112,14 @@ export default function DashboardPage() {
         }
     };
 
+    const handleEdit = (id: string) => {
+        const item = content.find(c => c.id === id);
+        if (item) {
+            setEditingContent(item);
+            setAddModalOpen(true);
+        }
+    };
+
     const handleLogout = async () => {
         await authApi.logout();
         router.push('/');
@@ -170,7 +179,7 @@ export default function DashboardPage() {
                                     <Share2 className="w-4 h-4" />
                                     Share Brain
                                 </Button>
-                                <Button className="gap-2" onClick={() => setAddModalOpen(true)}>
+                                <Button className="gap-2" onClick={() => { setEditingContent(null); setAddModalOpen(true); }}>
                                     <Plus className="w-4 h-4" />
                                     Add Content
                                 </Button>
@@ -191,7 +200,7 @@ export default function DashboardPage() {
                             </div>
                             <h3 className="text-xl font-bold text-slate-100 mb-2">Your Mind is Clear</h3>
                             <p className="text-sm text-slate-400 mb-8 max-w-xs mx-auto">This space is ready for your next big idea. Start by adding a tweet, video, or link.</p>
-                            <Button className="glow-purple" onClick={() => setAddModalOpen(true)}>
+                            <Button className="glow-purple" onClick={() => { setEditingContent(null); setAddModalOpen(true); }}>
                                 <Plus className="w-4 h-4 mr-2" />
                                 Add Your First Item
                             </Button>
@@ -227,6 +236,7 @@ export default function DashboardPage() {
                                             isPublic={item.isPublic}
                                             isOwner={true}
                                             onDelete={handleDelete}
+                                            onEdit={handleEdit}
                                         />
                                     </motion.div>
                                 ))}
@@ -236,7 +246,16 @@ export default function DashboardPage() {
                 </div>
             </main>
 
-            <AddContentModal open={addModalOpen} onOpenChange={setAddModalOpen} onSuccess={fetchContent} />
+            <AddContentModal
+                open={addModalOpen}
+                onOpenChange={(open) => {
+                    setAddModalOpen(open);
+                    if (!open) setEditingContent(null);
+                }}
+                onSuccess={fetchContent}
+                initialData={editingContent || undefined}
+                mode={editingContent ? 'edit' : 'add'}
+            />
             <ShareBrainModal open={shareModalOpen} onOpenChange={setShareModalOpen} contentCount={content.length} />
         </div>
     );

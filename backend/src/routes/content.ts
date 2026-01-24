@@ -2,7 +2,7 @@ import { Router, Response } from 'express';
 import { z } from 'zod';
 import { Content } from '../models/Content';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { generateEmbedding, extractTextFromImage, generateFlashcards } from '../utils/gemini';
+import { generateEmbedding } from '../utils/gemini';
 import { scrapeMetadata } from '../utils/scraper';
 
 const router = Router();
@@ -129,19 +129,10 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
     }
 });
 
-// DELETE /api/v1/content - Delete content
-router.delete('/', async (req: AuthRequest, res: Response): Promise<void> => {
+// DELETE /api/v1/content/:contentId - Delete content
+router.delete('/:contentId', async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const validation = deleteSchema.safeParse(req.body);
-        if (!validation.success) {
-            res.status(411).json({
-                message: 'Error in inputs',
-                errors: validation.error.errors
-            });
-            return;
-        }
-
-        const { contentId } = validation.data;
+        const { contentId } = req.params;
         const userId = req.userId;
 
         // Find content
@@ -172,23 +163,35 @@ router.delete('/', async (req: AuthRequest, res: Response): Promise<void> => {
     }
 });
 
-// POST /api/v1/content/flashcards - Generate flashcards from content
-router.post('/flashcards', async (req: AuthRequest, res: Response): Promise<void> => {
+// PUT /api/v1/content/:contentId - Update content
+router.put('/:contentId', async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const { contentId } = req.body;
+        const { contentId } = req.params;
         const userId = req.userId;
+        const validation = contentSchema.safeParse(req.body);
 
-        const content = await Content.findOne({ _id: contentId, userId });
+        if (!validation.success) {
+            res.status(411).json({ message: 'Error in inputs', errors: validation.error.errors });
+            return;
+        }
+
+        const { type, link, title, imageUrl, description } = validation.data;
+
+        const content = await Content.findOneAndUpdate(
+            { _id: contentId, userId },
+            { type, link, title, imageUrl, description },
+            { new: true }
+        );
+
         if (!content) {
             res.status(404).json({ message: 'Content not found' });
             return;
         }
 
-        const flashcards = await generateFlashcards(content.title, content.description || '');
-        res.status(200).json({ flashcards });
+        res.status(200).json({ message: 'Content updated successfully', content });
     } catch (error) {
-        console.error('❌ Flashcard error:', error);
-        res.status(500).json({ message: 'Server error during flashcard generation' });
+        console.error('Update content error:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 });
 
@@ -215,21 +218,5 @@ router.put('/:contentId/public', async (req: AuthRequest, res: Response): Promis
     }
 });
 
-// POST /api/v1/content/ocr - Extract text from image
-router.post('/ocr', async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-        const { image } = req.body;
-        if (!image) {
-            res.status(400).json({ message: 'Image data is required' });
-            return;
-        }
-
-        const result = await extractTextFromImage(image);
-        res.status(200).json(result);
-    } catch (error) {
-        console.error('❌ OCR error:', error);
-        res.status(500).json({ message: 'Server error during OCR' });
-    }
-});
 
 export default router;
