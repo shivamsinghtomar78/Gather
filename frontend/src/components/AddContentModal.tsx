@@ -35,7 +35,6 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [imageUrl, setImageUrl] = useState('');
-    const [tagsInput, setTagsInput] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [loading, setLoading] = useState(false);
@@ -49,11 +48,10 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
             reader.onload = async () => {
                 const base64 = reader.result as string;
                 const response = await contentApi.ocr(base64);
-                const { title, description, tags } = response.data;
+                const { title, description } = response.data;
 
                 setTitle(title);
                 setDescription(description);
-                setTagsInput(tags.join(', '));
                 setType('document');
             };
         } catch (error) {
@@ -74,12 +72,7 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
         setLoading(true);
 
         try {
-            const tags = tagsInput
-                .split(',')
-                .map(tag => tag.trim())
-                .filter(tag => tag.length > 0);
-
-            await contentApi.add({ type, link: link || undefined, title, description, tags, imageUrl });
+            await contentApi.add({ type, link: link || undefined, title, description, imageUrl });
 
             // Micro-interactions
             if (window.navigator?.vibrate) {
@@ -110,7 +103,6 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
             setTitle('');
             setDescription('');
             setImageUrl('');
-            setTagsInput('');
 
             onSuccess();
             onOpenChange(false);
@@ -156,7 +148,7 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
                                 <Camera className="w-6 h-6 text-slate-400 group-hover:text-purple-400 transition-colors" />
                                 <div className="text-center">
                                     <span className="text-xs text-slate-300 font-bold block">Upload Image for AI OCR</span>
-                                    <span className="text-[10px] text-slate-500 uppercase tracking-wider">Extract text, title & tags</span>
+                                    <span className="text-[10px] text-slate-500 uppercase tracking-wider">Extract text and title</span>
                                 </div>
                                 <Sparkles className="absolute top-2 right-2 w-4 h-4 text-purple-400/20 group-hover:text-purple-400 transition-colors" />
                             </>
@@ -240,18 +232,6 @@ export function AddContentModal({ open, onOpenChange, onSuccess }: AddContentMod
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Add some notes or long-form content here..."
                             className="w-full min-h-[100px] bg-slate-900 border border-slate-800 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-y"
-                        />
-                    </div>
-
-                    {/* Tags */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-200 mb-1.5">
-                            Tags (comma separated)
-                        </label>
-                        <Input
-                            value={tagsInput}
-                            onChange={(e) => setTagsInput(e.target.value)}
-                            placeholder="productivity, tech, learning..."
                         />
                     </div>
 

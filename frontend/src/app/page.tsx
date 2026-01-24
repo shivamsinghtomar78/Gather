@@ -7,15 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Brain, ArrowRight, Twitter, Video, FileText, Link2, Sparkles } from 'lucide-react';
 import { GatherWatermark } from '@/components/GatherWatermark';
 
-// Dynamic import for Three.js (client-only)
-const Brain3D = dynamic(() => import('@/components/Brain3D').then(mod => mod.Brain3D), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full flex items-center justify-center">
-      <div className="w-32 h-32 rounded-full bg-gradient-to-br from-purple-500/20 to-cyan-500/20 animate-pulse" />
+// Brain visual for landing page
+const BrainVisual = () => (
+  <div className="w-full h-full flex items-center justify-center relative">
+    <div className="absolute inset-0 bg-purple-500/20 blur-[120px] rounded-full animate-pulse" />
+    <div className="w-64 h-64 rounded-full bg-gradient-to-br from-purple-500/10 to-cyan-500/10 flex items-center justify-center border border-purple-500/20 backdrop-blur-3xl glow-purple shadow-2xl">
+      <Brain className="w-32 h-32 text-purple-400 opacity-80" />
     </div>
-  )
-});
+  </div>
+);
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
@@ -198,9 +198,9 @@ export default function LandingPage() {
 
             {/* Right - 3D Brain + Floating Card */}
             <div className="relative lg:h-[600px] h-[400px]">
-              {/* 3D Brain with Watermark */}
+              {/* Brain Visual with Watermark */}
               <div className="absolute inset-0">
-                <Brain3D />
+                <BrainVisual />
                 <GatherWatermark />
               </div>
 

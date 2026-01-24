@@ -1,9 +1,8 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { Content } from '../models/Content';
-import { Tag } from '../models/Tag';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { generateEmbedding, suggestTags, chatWithContext, summarizeTagContent, extractTextFromImage, generateFlashcards } from '../utils/gemini';
+import { generateEmbedding, extractTextFromImage, generateFlashcards } from '../utils/gemini';
 import { scrapeMetadata } from '../utils/scraper';
 
 const router = Router();
@@ -18,7 +17,6 @@ const contentSchema = z.object({
     title: z.string().min(1, 'Title is required'),
     description: z.string().optional(),
     imageUrl: z.string().url('Invalid image URL format').optional().or(z.literal('')),
-    tags: z.array(z.string()).optional().default([])
 });
 
 const deleteSchema = z.object({
@@ -34,7 +32,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
             return;
         }
 
-        let { type, link, title, tags, imageUrl, description } = validation.data;
+        let { type, link, title, imageUrl, description } = validation.data;
         const userId = req.userId;
 
         // 1. Deduplication (Check for existing link for this user)
@@ -57,29 +55,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
             description = description || metadata.description;
         }
 
-        // 3. AI Auto-Tagging (if no tags provided)
-        let finalTags = tags || [];
-        if (finalTags.length === 0) {
-            try {
-                const suggested = await suggestTags(title, description);
-                finalTags = suggested;
-            } catch (err) {
-                console.warn('⚠️ Auto-tagging failed');
-            }
-        }
-
-        // Process tags - find existing or create new
-        const tagIds = await Promise.all(
-            finalTags.map(async (tagTitle: string) => {
-                let tag = await Tag.findOne({ title: tagTitle.toLowerCase() });
-                if (!tag) {
-                    tag = await Tag.create({ title: tagTitle.toLowerCase() });
-                }
-                return tag._id;
-            })
-        );
-
-        // 4. Generate embedding for RAG
+        // 3. Generate embedding for RAG
         let embedding: number[] | undefined;
         try {
             embedding = await generateEmbedding(`${title} ${type} ${description || ''}`);
@@ -95,11 +71,10 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
             description,
             imageUrl,
             embedding,
-            tags: tagIds,
             userId
         });
 
-        // 5. Emit Real-time update
+        // 4. Emit Real-time update
         const io = req.app.get('io');
         io.emit(`content:added:${userId}`, {
             id: content._id,
@@ -116,7 +91,6 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
                 title: content.title,
                 description: content.description,
                 imageUrl: content.imageUrl,
-                tags: finalTags
             }
         });
     } catch (error) {
@@ -136,7 +110,6 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
                 { sharedWith: userId }
             ]
         })
-            .populate('tags', 'title')
             .sort({ createdAt: -1 });
 
         const formattedContent = contents.map(content => ({
@@ -146,7 +119,6 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
             title: content.title,
             description: content.description,
             imageUrl: content.imageUrl,
-            tags: (content.tags as any[]).map(tag => tag.title),
             isPublic: content.isPublic
         }));
 
@@ -257,98 +229,6 @@ router.post('/ocr', async (req: AuthRequest, res: Response): Promise<void> => {
     } catch (error) {
         console.error('❌ OCR error:', error);
         res.status(500).json({ message: 'Server error during OCR' });
-    }
-});
-
-// POST /api/v1/content/summarize - Tag Summarization
-router.post('/summarize', async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-        const { tag } = req.body;
-        const userId = req.userId;
-
-        if (!tag) {
-            res.status(400).json({ message: 'Tag is required' });
-            return;
-        }
-
-        // 1. Find the tag ID
-        const tagDoc = await Tag.findOne({ title: tag.toLowerCase() });
-        if (!tagDoc) {
-            res.status(404).json({ message: 'Tag not found' });
-            return;
-        }
-
-        // 2. Fetch all content for this tag and user
-        const contents = await Content.find({
-            userId,
-            tags: tagDoc._id
-        }).select('title description');
-
-        if (contents.length === 0) {
-            res.status(200).json({ summary: "No content found for this tag to summarize." });
-            return;
-        }
-
-        // 3. Generate summary
-        const summary = await summarizeTagContent(tag, contents.map(c => ({
-            title: c.title,
-            description: c.description
-        })));
-
-        res.status(200).json({ summary, count: contents.length });
-    } catch (error) {
-        console.error('❌ Summarization error:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-
-// POST /api/v1/content/chat - AI Query Chat
-router.post('/chat', async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-        const { query } = req.body;
-        const userId = req.userId;
-
-        if (!query) {
-            res.status(400).json({ message: 'Query is required' });
-            return;
-        }
-
-        // 1. Generate Query Embedding
-        const queryEmbedding = await generateEmbedding(query);
-
-        // 2. Perform Vector Search to get context
-        const contextResults = await Content.aggregate([
-            {
-                $vectorSearch: {
-                    index: "vector_index",
-                    path: "embedding",
-                    queryVector: queryEmbedding,
-                    numCandidates: 50,
-                    limit: 10,
-                    filter: { userId: { $eq: userId } }
-                }
-            },
-            {
-                $project: {
-                    title: 1,
-                    description: 1,
-                    type: 1
-                }
-            }
-        ]);
-
-        // 3. Format Context
-        const contextString = contextResults
-            .map(r => `Title: ${r.title}\nType: ${r.type}\nDescription: ${r.description || 'N/A'}`)
-            .join('\n\n');
-
-        // 4. Get response from Gemini
-        const answer = await chatWithContext(query, contextString);
-
-        res.status(200).json({ answer, context: contextResults });
-    } catch (error) {
-        console.error('❌ Chat error:', error);
-        res.status(500).json({ message: 'Server error' });
     }
 });
 

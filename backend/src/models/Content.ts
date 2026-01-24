@@ -9,7 +9,6 @@ export interface IContent extends Document {
     description?: string;
     imageUrl?: string;
     embedding?: number[];
-    tags: Types.ObjectId[];
     userId: Types.ObjectId;
     sharedWith: Types.ObjectId[];
     isPublic: boolean;
@@ -41,10 +40,6 @@ const contentSchema = new Schema<IContent>({
         type: [Number],
         index: false // We will manage the vector index separately in Atlas
     },
-    tags: [{
-        type: Schema.Types.ObjectId,
-        ref: 'Tag'
-    }],
     userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
@@ -61,9 +56,6 @@ const contentSchema = new Schema<IContent>({
 }, {
     timestamps: true
 });
-
-// Add text index for search functionality
-contentSchema.index({ title: 'text' });
 
 // Validate that user exists before saving
 contentSchema.pre('save', async function (next) {

@@ -263,17 +263,11 @@ export const authApi = {
 export const contentApi = {
     getAll: () => api.get('/content'),
 
-    add: (data: { type: string; link?: string; title: string; description?: string; imageUrl?: string; tags: string[] }) =>
+    add: (data: { type: string; link?: string; title: string; description?: string; imageUrl?: string }) =>
         api.post('/content', data),
 
     delete: (contentId: string) =>
         api.delete('/content', { data: { contentId } }),
-
-    chat: (query: string) =>
-        api.post('/content/chat', { query }),
-
-    summarize: (tag: string) =>
-        api.post('/content/summarize', { tag }),
 
     generateFlashcards: (contentId: string) =>
         api.post('/content/flashcards', { contentId }),
@@ -298,10 +292,4 @@ export const brainApi = {
 
     getShared: (shareLink: string) =>
         api.get(`/brain/${shareLink}`),
-};
-
-// Search API
-export const searchApi = {
-    search: (query: string, type?: string) =>
-        api.post('/search', { query, type: type || 'all' }),
 };

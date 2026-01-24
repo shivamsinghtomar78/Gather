@@ -13,10 +13,8 @@ import {
     Expand,
     X,
     Calendar,
-    Tag as TagIcon,
     Globe,
     Lock,
-    GraduationCap
 } from 'lucide-react';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -25,7 +23,6 @@ import { useState } from 'react';
 import { MediaEmbed } from './MediaEmbed';
 import { Button } from './ui/button';
 import { contentApi } from '@/lib/api';
-import { FlashcardModal } from './FlashcardModal';
 
 export interface ContentCardProps {
     id: string;
@@ -34,10 +31,8 @@ export interface ContentCardProps {
     link?: string;
     imageUrl?: string;
     description?: string;
-    tags: string[];
     onDelete: (id: string) => void;
     onShare?: (id: string) => void;
-    searchQuery?: string;
     isPublic?: boolean;
     isOwner?: boolean;
 }
@@ -63,10 +58,8 @@ export function ContentCard({
     link,
     imageUrl,
     description,
-    tags,
     onDelete,
     onShare,
-    searchQuery = '',
     isPublic: initialIsPublic = false,
     isOwner = true
 }: ContentCardProps) {
@@ -90,7 +83,6 @@ export function ContentCard({
     const iconColor = typeColors[type] || 'text-slate-400';
     const [isCopied, setIsCopied] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
-    const [isFlashcardOpen, setIsFlashcardOpen] = useState(false);
 
     const handleCopyLink = () => {
         if (link) {
@@ -98,20 +90,6 @@ export function ContentCard({
             setIsCopied(true);
             setTimeout(() => setIsCopied(false), 2000);
         }
-    };
-
-    const highlightText = (text: string, query: string) => {
-        if (!query.trim()) return text;
-        const parts = text.split(new RegExp(`(${query})`, 'gi'));
-        return (
-            <>
-                {parts.map((part, i) =>
-                    part.toLowerCase() === query.toLowerCase()
-                        ? <span key={i} className="bg-yellow-400/30 text-yellow-200 px-0.5 rounded">{part}</span>
-                        : part
-                )}
-            </>
-        );
     };
 
     const cardContent = (
@@ -123,7 +101,7 @@ export function ContentCard({
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2 overflow-hidden">
                     <Icon className={cn("w-5 h-5 shrink-0", iconColor)} />
-                    <h3 className="font-semibold text-slate-100 line-clamp-1">{highlightText(title, searchQuery)}</h3>
+                    <h3 className="font-semibold text-slate-100 line-clamp-1">{title}</h3>
                 </div>
 
                 {/* Actions (Desktop Hover) */}
@@ -169,27 +147,6 @@ export function ContentCard({
                     </p>
                 </div>
             )}
-
-            {/* Tags */}
-            <div className={cn("flex-1", !description && "mt-auto")}>
-                {tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-3">
-                        {tags.map((tag, index) => (
-                            <span
-                                key={index}
-                                className={cn(
-                                    "px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md border",
-                                    tag.toLowerCase().includes(searchQuery.toLowerCase()) && searchQuery.trim()
-                                        ? "bg-yellow-400/20 text-yellow-200 border-yellow-500/30"
-                                        : "bg-purple-600/20 text-purple-300 border-purple-500/20"
-                                )}
-                            >
-                                {tag}
-                            </span>
-                        ))}
-                    </div>
-                )}
-            </div>
 
             {/* Footer */}
             <p className="text-[10px] text-slate-500 mt-auto pt-3 border-t border-purple-500/10 flex items-center justify-between">
@@ -242,14 +199,6 @@ export function ContentCard({
                         >
                             <Share2 className="w-4 h-4" />
                             Share Brain
-                        </ContextMenu.Item>
-
-                        <ContextMenu.Item
-                            onClick={() => setIsFlashcardOpen(true)}
-                            className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-purple-400 rounded-lg hover:bg-purple-950/30 hover:text-purple-300 outline-none cursor-pointer"
-                        >
-                            <GraduationCap className="w-4 h-4" />
-                            Study Flashcards
                         </ContextMenu.Item>
 
                         <ContextMenu.Separator className="h-px bg-slate-800 my-1 mx-1" />
@@ -310,19 +259,6 @@ export function ContentCard({
                             <div className="grid grid-cols-2 gap-8 pt-6 border-t border-purple-500/10">
                                 <div className="space-y-3">
                                     <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                        <TagIcon className="w-3 h-3" />
-                                        Tags
-                                    </h4>
-                                    <div className="flex flex-wrap gap-2">
-                                        {tags.map((tag, i) => (
-                                            <span key={i} className="px-3 py-1 bg-purple-600/20 text-purple-300 text-xs font-bold rounded-lg border border-purple-500/20">
-                                                {tag}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="space-y-3">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                         <Calendar className="w-3 h-3" />
                                         Metadata
                                     </h4>
@@ -336,11 +272,6 @@ export function ContentCard({
                 </Dialog.Portal>
             </Dialog.Root>
 
-            <FlashcardModal
-                contentId={id}
-                open={isFlashcardOpen}
-                onOpenChange={setIsFlashcardOpen}
-            />
         </>
     );
 }
