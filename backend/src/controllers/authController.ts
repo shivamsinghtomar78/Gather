@@ -56,7 +56,7 @@ export class AuthController {
             logger.info(`✅ User signed in: ${user.email}`);
             res.status(200).json({
                 message: 'Signed in successfully',
-                token: accessToken,
+                accessToken: accessToken,
                 refreshToken: refreshToken,
                 user: {
                     id: user._id,
