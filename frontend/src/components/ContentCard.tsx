@@ -99,11 +99,11 @@ export function ContentCard({
     const cardContent = (
         <div
             onClick={() => setIsExpanded(true)}
-            className="bg-slate-900/60 border border-purple-500/20 rounded-2xl p-6 hover:border-purple-500/50 transition-all duration-300 group backdrop-blur-md glow-purple-sm h-full flex flex-col cursor-pointer select-none ring-offset-slate-950 focus:outline-none focus:ring-2 focus:ring-purple-500/50 relative overflow-hidden"
+            className="premium-card border border-purple-500/20 rounded-2xl p-6 glow-purple-sm h-full flex flex-col cursor-pointer select-none ring-offset-slate-950 focus:outline-none focus:ring-2 focus:ring-purple-500/50 relative overflow-hidden"
         >
             {/* Beautiful Background Image */}
             <div
-                className="absolute inset-0 opacity-[0.15] group-hover:opacity-[0.25] transition-opacity duration-500 pointer-events-none"
+                className="absolute inset-0 opacity-[0.25] group-hover:opacity-[0.35] transition-opacity duration-500 pointer-events-none card-bg-overlay"
                 style={{
                     backgroundImage: 'url(/assets/card-bg.png)',
                     backgroundSize: 'cover',
