@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Sidebar, FilterType } from '@/components/Sidebar';
 import { ContentCard } from '@/components/ContentCard';
 import { AddContentModal } from '@/components/AddContentModal';
@@ -33,10 +34,12 @@ export default function DashboardPage() {
     const [addModalOpen, setAddModalOpen] = useState(false);
     const [shareModalOpen, setShareModalOpen] = useState(false);
     const [editingContent, setEditingContent] = useState<Content | null>(null);
+    const [user, setUser] = useState<any>(null);
 
     // Get API base URL for socket connection
     const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
+    // Get API base URL for socket connection
     const fetchContent = useCallback(async () => {
         try {
             const response = await contentApi.getAll();
@@ -50,6 +53,15 @@ export default function DashboardPage() {
         }
     }, [router]);
 
+    const fetchUser = useCallback(async () => {
+        try {
+            const response = await authApi.getMe();
+            setUser(response.data.user);
+        } catch (error) {
+            // Silent fail
+        }
+    }, []);
+
     useEffect(() => {
         const checkAuth = () => {
             if (!tokenManager.isAuthenticated()) {
@@ -61,6 +73,7 @@ export default function DashboardPage() {
 
         if (checkAuth()) {
             fetchContent();
+            fetchUser();
         }
 
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -175,6 +188,17 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between">
                             <h1 className="text-2xl font-bold text-slate-100">{getPageTitle()}</h1>
                             <div className="flex items-center gap-3">
+                                {user && (
+                                    <Link href="/profile" className="hidden sm:block">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center overflow-hidden shadow-lg glow-purple-sm hover:scale-105 transition-transform border border-purple-500/20">
+                                            {user.profilePicUrl ? (
+                                                <img src={user.profilePicUrl} alt="Profile" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-sm font-bold text-white">{user.username[0].toUpperCase()}</span>
+                                            )}
+                                        </div>
+                                    </Link>
+                                )}
                                 <DropdownMenu.Root>
                                     <DropdownMenu.Trigger asChild>
                                         <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-purple-500/30 bg-slate-900/50 hover:bg-slate-800 transition-all glow-purple-sm">

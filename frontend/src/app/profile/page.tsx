@@ -16,7 +16,8 @@ import {
     XCircle,
     Eye,
     EyeOff,
-    Brain
+    Brain,
+    LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -114,6 +115,17 @@ export default function ProfilePage() {
             setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to change password' });
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleLogout = async () => {
+        try {
+            await authApi.logout();
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            tokenManager.clearTokens();
+            router.push('/');
         }
     };
 
@@ -318,7 +330,7 @@ export default function ProfilePage() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="p-6 space-y-6">
+                                <div className="p-6 space-y-4">
                                     <div className="flex justify-between items-center text-sm font-medium">
                                         <div className="flex items-center gap-3 text-slate-400">
                                             <Calendar className="w-4 h-4" />
@@ -336,6 +348,17 @@ export default function ProfilePage() {
                                         <span className="text-emerald-400 px-2 py-0.5 bg-emerald-400/10 border border-emerald-400/20 rounded-full text-[10px] uppercase font-bold tracking-wider">
                                             Active
                                         </span>
+                                    </div>
+
+                                    <div className="pt-4 border-t border-slate-800">
+                                        <Button
+                                            onClick={handleLogout}
+                                            variant="ghost"
+                                            className="w-full flex items-center justify-center gap-3 text-red-500 hover:text-red-400 hover:bg-red-500/10 py-6 rounded-2xl border border-transparent hover:border-red-500/20 transition-all font-bold"
+                                        >
+                                            <LogOut className="w-5 h-5" />
+                                            Logout Account
+                                        </Button>
                                     </div>
                                 </div>
                             </aside>

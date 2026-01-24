@@ -75,23 +75,6 @@ export function Sidebar({ activeFilter, onFilterChange }: SidebarProps) {
                         </button>
                     );
                 })}
-                {secondaryNavItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = pathname === item.href;
-                    return (
-                        <Link
-                            key={item.id}
-                            href={item.href}
-                            className={cn(
-                                "flex flex-col items-center gap-1 p-2 rounded-lg transition-all",
-                                isActive ? "text-purple-400" : "text-slate-500"
-                            )}
-                        >
-                            <Icon className="w-5 h-5" />
-                            <span className="text-[10px] font-medium">{item.label}</span>
-                        </Link>
-                    );
-                })}
             </div>
 
             {/* Backdrop for mobile sidebar */}
@@ -131,7 +114,6 @@ export function Sidebar({ activeFilter, onFilterChange }: SidebarProps) {
                             <span className="text-xs font-bold text-white group-hover:text-purple-400 transition-colors">
                                 {user?.displayName || user?.username || 'Profile'}
                             </span>
-                            <span className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">Settings</span>
                         </div>
                     </Link>
                 </div>
@@ -159,31 +141,6 @@ export function Sidebar({ activeFilter, onFilterChange }: SidebarProps) {
                                         <Icon className={cn("w-4 h-4 transition-transform duration-300 group-hover:scale-110", isActive ? "text-purple-400" : "text-slate-500")} />
                                         {item.label}
                                     </button>
-                                );
-                            })}
-                        </nav>
-                    </section>
-                    <section>
-                        <h3 className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">Account</h3>
-                        <nav className="space-y-1">
-                            {secondaryNavItems.map((item) => {
-                                const Icon = item.icon;
-                                const isActive = pathname === item.href;
-
-                                return (
-                                    <Link
-                                        key={item.id}
-                                        href={item.href}
-                                        className={cn(
-                                            "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group",
-                                            isActive
-                                                ? "bg-purple-600/30 text-white border border-purple-500/30 glow-purple-sm"
-                                                : "text-slate-400 hover:bg-slate-800/50 hover:text-purple-300"
-                                        )}
-                                    >
-                                        <Icon className={cn("w-4 h-4 transition-transform duration-300 group-hover:scale-110", isActive ? "text-purple-400" : "text-slate-500")} />
-                                        {item.label}
-                                    </Link>
                                 );
                             })}
                         </nav>
