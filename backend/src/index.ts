@@ -8,6 +8,7 @@ import authRoutes from './routes/auth';
 import contentRoutes from './routes/content';
 import brainRoutes from './routes/brain';
 import profileRoutes from './routes/profile';
+import logger from './utils/logger';
 
 dotenv.config();
 
@@ -40,29 +41,29 @@ const allowedOrigins = [
 app.use(cors({
     origin: (origin, callback) => {
         // Log all CORS requests for debugging
-        console.log(`📨 CORS check for origin: ${origin || 'NO ORIGIN (same-origin or tools)'}`);
+        logger.debug(`📨 CORS check for origin: ${origin || 'NO ORIGIN (same-origin or tools)'}`);
 
         // Allow requests with no origin (same-origin, mobile apps, curl)
         if (!origin) {
-            console.log('✅ Allowing no-origin request');
+            logger.debug('✅ Allowing no-origin request');
             return callback(null, true);
         }
 
         // Check exact match
         const isAllowed = allowedOrigins.some(ao => ao === origin);
         if (isAllowed) {
-            console.log(`✅ Origin ${origin} is in allowed list`);
+            logger.debug(`✅ Origin ${origin} is in allowed list`);
             return callback(null, true);
         }
 
         // Check Vercel pattern (*.vercel.app)
         if (origin.match(/^https:\/\/[\w-]+\.vercel\.app$/)) {
-            console.log(`✅ Origin ${origin} matches Vercel pattern`);
+            logger.debug(`✅ Origin ${origin} matches Vercel pattern`);
             return callback(null, true);
         }
 
         // Block and log
-        console.error(`❌ CORS BLOCKED: ${origin}`);
+        logger.warn(`❌ CORS BLOCKED: ${origin}`);
         callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
@@ -76,8 +77,6 @@ app.use(express.json({ limit: '10mb' }));
 
 // Request logging middleware - MUST be before routes
 app.use((req, res, next) => {
-    const timestamp = new Date().toISOString();
-
     // Helper to redact sensitive info
     const redact = (obj: any): any => {
         if (!obj || typeof obj !== 'object') return obj;
@@ -93,19 +92,17 @@ app.use((req, res, next) => {
         return redacted;
     };
 
-    console.log('═══════════════════════════════════════════════════════');
-    console.log(`[${timestamp}] ${req.method} ${req.url}`);
-    console.log('Full URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
+    logger.http(`[${req.method}] ${req.url}`);
+    logger.debug(`Full URL: ${req.protocol}://${req.get('host')}${req.originalUrl}`);
 
     // Redact headers and body
     const safeHeaders = redact(req.headers);
     const safeBody = redact(req.body);
     const safeQuery = redact(req.query);
 
-    console.log('Headers:', JSON.stringify(safeHeaders, null, 2));
-    console.log('Body:', JSON.stringify(safeBody, null, 2));
-    console.log('Query:', JSON.stringify(safeQuery, null, 2));
-    console.log('═══════════════════════════════════════════════════════');
+    logger.debug(`Headers: ${JSON.stringify(safeHeaders)}`);
+    logger.debug(`Body: ${JSON.stringify(safeBody)}`);
+    logger.debug(`Query: ${JSON.stringify(safeQuery)}`);
     next();
 });
 
@@ -135,36 +132,31 @@ app.get('/', (req, res) => {
     });
 });
 
-// 404 handler - MUST be after all routes
-app.use((req, res) => {
-    console.log('❌ 404 NOT FOUND:', req.method, req.url);
-    console.log('Available routes:', [
-        'GET /health',
-        'GET /',
-        'POST /api/v1/signup',
-        'POST /api/v1/signin',
-        'GET /api/v1/content',
-        'POST /api/v1/content',
-        'DELETE /api/v1/content',
-        'POST /api/v1/brain/share',
-        'GET /api/v1/brain/:shareLink'
-    ]);
-    res.status(404).json({
-        error: 'Not Found',
-        requestedUrl: req.url,
-        method: req.method,
-        message: 'The requested endpoint does not exist'
-    });
+import { errorHandler } from './middleware/error';
+import { AppError } from './utils/AppError';
+
+// ... (keep imports)
+
+// ... (after routes)
+
+// 404 handler
+app.all('*', (req, res, next) => {
+    next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
+
+// Global Error Handler
+app.use(errorHandler);
+
+// Connect to database ...
 
 // Connect to database and start server
 connectDB().then(() => {
     httpServer.listen(PORT, () => {
-        console.log(`🚀 Gather API running on http://localhost:${PORT}`);
-        console.log(`📡 Real-time Socket.io server ready`);
+        logger.info(`🚀 Gather API running on http://localhost:${PORT}`);
+        logger.info(`📡 Real-time Socket.io server ready`);
     });
 }).catch((error) => {
-    console.error('Failed to connect to database:', error);
+    logger.error(`Failed to connect to database: ${error}`);
     process.exit(1);
 });
 

@@ -8,27 +8,22 @@ import {
     Share2,
     Trash2,
     ExternalLink,
-    MoreVertical,
     Check,
     Expand,
-    X,
-    Calendar,
-    Globe,
-    Lock,
     Pencil,
 } from 'lucide-react';
 import * as ContextMenu from '@radix-ui/react-context-menu';
-import * as Dialog from '@radix-ui/react-dialog';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { MediaEmbed } from './MediaEmbed';
-import { Button } from './ui/button';
 import { contentApi } from '@/lib/api';
+import { CardActions } from './CardActions';
+import { CardDialog } from './CardDialog';
+import { ContentType } from '@/types';
 
 export interface ContentCardProps {
     id: string;
-    type: 'tweet' | 'youtube' | 'document' | 'link';
+    type: ContentType;
     title: string;
     link?: string;
     imageUrl?: string;
@@ -69,6 +64,8 @@ export function ContentCard({
 }: ContentCardProps) {
     const [isPublic, setIsPublic] = useState(initialIsPublic);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [isCopied, setIsCopied] = useState(false);
 
     const togglePublic = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -83,22 +80,20 @@ export function ContentCard({
             setIsUpdating(false);
         }
     };
-    const Icon = typeIcons[type] || FileText;
-    const iconColor = typeColors[type] || 'text-slate-400';
-    const [isCopied, setIsCopied] = useState(false);
-    const [isExpanded, setIsExpanded] = useState(false);
 
     const handleCopyLink = () => {
         if (link) {
             navigator.clipboard.writeText(link);
         } else {
-            // For notes/documents without a link, copy the content
             const contentToCopy = `${title}\n\n${description || ''}`;
             navigator.clipboard.writeText(contentToCopy);
         }
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
     };
+
+    const Icon = typeIcons[type] || FileText;
+    const iconColor = typeColors[type] || 'text-slate-400';
 
     const cardContent = (
         <div
@@ -124,87 +119,21 @@ export function ContentCard({
                         <h3 className="font-semibold text-slate-100 line-clamp-1">{title}</h3>
                     </div>
 
-                    {/* Actions (Consolidated into Three Dots) */}
+                    {/* Actions */}
                     <div className="flex items-center shrink-0">
-                        <DropdownMenu.Root>
-                            <DropdownMenu.Trigger asChild>
-                                <button
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="p-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 rounded-lg transition-all"
-                                >
-                                    <MoreVertical className="w-5 h-5" />
-                                </button>
-                            </DropdownMenu.Trigger>
-
-                            <DropdownMenu.Portal>
-                                <DropdownMenu.Content
-                                    className="min-w-[180px] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-1.5 shadow-2xl z-[150] animate-in fade-in zoom-in duration-200"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <DropdownMenu.Item
-                                        onClick={() => setIsExpanded(true)}
-                                        className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-slate-300 rounded-lg hover:bg-white/10 hover:text-white outline-none cursor-pointer"
-                                    >
-                                        <Expand className="w-4 h-4" />
-                                        Expand Details
-                                    </DropdownMenu.Item>
-
-                                    {isOwner && (
-                                        <>
-                                            <DropdownMenu.Item
-                                                onClick={() => onEdit?.(id)}
-                                                className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-slate-300 rounded-lg hover:bg-white/10 hover:text-white outline-none cursor-pointer"
-                                            >
-                                                <Pencil className="w-4 h-4" />
-                                                Edit Content
-                                            </DropdownMenu.Item>
-
-                                            <DropdownMenu.Item
-                                                onClick={(e: any) => togglePublic(e)}
-                                                className="flex items-center justify-between gap-3 px-3 py-2.5 text-xs font-medium text-slate-300 rounded-lg hover:bg-white/10 hover:text-white outline-none cursor-pointer"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    {isPublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                                                    Visibility
-                                                </div>
-                                                <span className={cn("text-[10px] uppercase font-bold px-1.5 py-0.5 rounded", isPublic ? "bg-purple-500/20 text-purple-400" : "bg-slate-800 text-slate-500")}>
-                                                    {isPublic ? 'Public' : 'Private'}
-                                                </span>
-                                            </DropdownMenu.Item>
-                                        </>
-                                    )}
-
-                                    <DropdownMenu.Item
-                                        onClick={handleCopyLink}
-                                        className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-slate-300 rounded-lg hover:bg-white/10 hover:text-white outline-none cursor-pointer"
-                                    >
-                                        {isCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Link2 className="w-4 h-4" />}
-                                        {isCopied ? 'Copied Content!' : 'Copy Link / Note'}
-                                    </DropdownMenu.Item>
-
-                                    <DropdownMenu.Item
-                                        onClick={() => onShare?.(id)}
-                                        className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-slate-300 rounded-lg hover:bg-white/10 hover:text-white outline-none cursor-pointer"
-                                    >
-                                        <Share2 className="w-4 h-4" />
-                                        Share Brain
-                                    </DropdownMenu.Item>
-
-                                    {isOwner && (
-                                        <>
-                                            <DropdownMenu.Separator className="h-px bg-white/5 my-1 mx-1" />
-                                            <DropdownMenu.Item
-                                                onClick={() => onDelete(id)}
-                                                className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-red-400 rounded-lg hover:bg-red-500/10 hover:text-red-300 outline-none cursor-pointer"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                                Delete Item
-                                            </DropdownMenu.Item>
-                                        </>
-                                    )}
-                                </DropdownMenu.Content>
-                            </DropdownMenu.Portal>
-                        </DropdownMenu.Root>
+                        <CardActions
+                            id={id}
+                            link={link}
+                            title={title}
+                            description={description}
+                            isPublic={isPublic}
+                            isOwner={isOwner}
+                            onTogglePublic={togglePublic}
+                            onEdit={onEdit}
+                            onDelete={onDelete}
+                            onShare={onShare}
+                            onExpand={() => setIsExpanded(true)}
+                        />
                     </div>
                 </div>
 
@@ -298,64 +227,17 @@ export function ContentCard({
                 </ContextMenu.Portal>
             </ContextMenu.Root>
 
-            <Dialog.Root open={isExpanded} onOpenChange={setIsExpanded}>
-                <Dialog.Portal>
-                    <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] animate-in fade-in duration-300" />
-                    <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-slate-900 border border-purple-500/20 rounded-3xl p-0 shadow-2xl z-[120] animate-in zoom-in-95 duration-300 focus:outline-none no-scrollbar">
-                        <div className="relative">
-                            <MediaEmbed type={type} url={link} imageUrl={imageUrl} title={title} />
-                            <Dialog.Close className="absolute top-6 right-6 p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors backdrop-blur-md">
-                                <X className="w-6 h-6" />
-                            </Dialog.Close>
-                        </div>
-
-                        <div className="p-8 space-y-6">
-                            <div className="flex items-start justify-between">
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <Icon className={cn("w-6 h-6", iconColor)} />
-                                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">{type}</span>
-                                    </div>
-                                    <Dialog.Title className="text-3xl font-bold text-white leading-tight">
-                                        {title}
-                                    </Dialog.Title>
-                                </div>
-                                {link && (
-                                    <Button
-                                        onClick={() => window.open(link, '_blank')}
-                                        className="glow-purple"
-                                    >
-                                        <ExternalLink className="w-4 h-4 mr-2" />
-                                        Visit Link
-                                    </Button>
-                                )}
-                            </div>
-
-                            {description && (
-                                <div className="space-y-3">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Notes & Content</h4>
-                                    <p className="text-slate-300 leading-relaxed text-lg whitespace-pre-wrap">
-                                        {description}
-                                    </p>
-                                </div>
-                            )}
-
-                            <div className="grid grid-cols-2 gap-8 pt-6 border-t border-purple-500/10">
-                                <div className="space-y-3">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                        <Calendar className="w-3 h-3" />
-                                        Metadata
-                                    </h4>
-                                    <p className="text-sm text-slate-400">
-                                        Added on {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </Dialog.Content>
-                </Dialog.Portal>
-            </Dialog.Root>
-
+            <CardDialog
+                isOpen={isExpanded}
+                onOpenChange={setIsExpanded}
+                type={type}
+                link={link}
+                imageUrl={imageUrl}
+                title={title}
+                description={description}
+                Icon={Icon}
+                iconColor={iconColor}
+            />
         </>
     );
 }

@@ -15,16 +15,8 @@ import { io } from 'socket.io-client';
 import { SkeletonCard } from '@/components/SkeletonCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
-interface Content {
-    id: string;
-    type: 'tweet' | 'youtube' | 'document' | 'link';
-    title: string;
-    link?: string;
-    imageUrl?: string;
-    description?: string;
-    isPublic?: boolean;
-    createdAt?: string;
-}
+import { Content, SocketContentEvent, SocketDeleteEvent } from '@/types';
+import { AxiosError } from 'axios';
 
 export default function DashboardPage() {
     const router = useRouter();
@@ -43,8 +35,9 @@ export default function DashboardPage() {
         try {
             const response = await contentApi.getAll();
             setContent(response.data.content || []);
-        } catch (error: any) {
-            if (error.response?.status === 401) {
+        } catch (error) {
+            const err = error as AxiosError;
+            if (err.response?.status === 401) {
                 router.push('/auth');
             }
         } finally {
@@ -87,7 +80,7 @@ export default function DashboardPage() {
         if (userInfo) {
             console.log(`📡 Joining real-time channel for user: ${userInfo.username}`);
 
-            socket.on(`content:added:${userInfo.id}`, (data) => {
+            socket.on(`content:added:${userInfo.id}`, (data: SocketContentEvent) => {
                 console.log('✨ New content added in another tab:', data.title);
                 fetchContent();
             });

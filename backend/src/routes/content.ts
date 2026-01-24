@@ -4,6 +4,7 @@ import { Content } from '../models/Content';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { generateEmbedding } from '../utils/gemini';
 import { scrapeMetadata } from '../utils/scraper';
+import logger from '../utils/logger';
 
 const router = Router();
 
@@ -60,7 +61,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
         try {
             embedding = await generateEmbedding(`${title} ${type} ${description || ''}`);
         } catch (error) {
-            console.warn('⚠️ Embedding generation failed');
+            logger.warn('⚠️ Embedding generation failed');
         }
 
         // Create content
@@ -93,8 +94,8 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
                 imageUrl: content.imageUrl,
             }
         });
-    } catch (error) {
-        console.error('Add content error:', error);
+    } catch (error: any) {
+        logger.error(`Add content error: ${error.message}`);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -123,8 +124,8 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
         }));
 
         res.status(200).json({ content: formattedContent });
-    } catch (error) {
-        console.error('Fetch content error:', error);
+    } catch (error: any) {
+        logger.error(`Fetch content error: ${error.message}`);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -157,8 +158,8 @@ router.delete('/:contentId', async (req: AuthRequest, res: Response): Promise<vo
         io.emit(`content:deleted:${userId}`, { contentId });
 
         res.status(200).json({ message: 'Delete succeeded' });
-    } catch (error) {
-        console.error('Delete content error:', error);
+    } catch (error: any) {
+        logger.error(`Delete content error: ${error.message}`);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -189,8 +190,8 @@ router.put('/:contentId', async (req: AuthRequest, res: Response): Promise<void>
         }
 
         res.status(200).json({ message: 'Content updated successfully', content });
-    } catch (error) {
-        console.error('Update content error:', error);
+    } catch (error: any) {
+        logger.error(`Update content error: ${error.message}`);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -212,8 +213,8 @@ router.put('/:contentId/public', async (req: AuthRequest, res: Response): Promis
         await content.save();
 
         res.status(200).json({ message: 'Public status updated', isPublic: content.isPublic });
-    } catch (error) {
-        console.error('❌ Status update error:', error);
+    } catch (error: any) {
+        logger.error(`Status update error: ${error.message}`);
         res.status(500).json({ message: 'Server error' });
     }
 });
