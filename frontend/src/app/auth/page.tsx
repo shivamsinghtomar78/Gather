@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +10,20 @@ import { Brain, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 type AuthMode = 'signin' | 'signup';
 
-export default function AuthPage() {
+function AuthContent() {
     const router = useRouter();
-    const [mode, setMode] = useState<AuthMode>('signin');
+    const searchParams = useSearchParams();
+    const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
+
+    const [mode, setMode] = useState<AuthMode>(initialMode);
+
+    // Sync mode if query param changes
+    useEffect(() => {
+        const queryMode = searchParams.get('mode');
+        if (queryMode === 'signup' || queryMode === 'signin') {
+            setMode(queryMode as AuthMode);
+        }
+    }, [searchParams]);
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -63,11 +74,10 @@ export default function AuthPage() {
 
             <div className="w-full max-w-md relative z-10">
                 {/* Logo */}
-                <Link href="/" className="flex items-center justify-center gap-3 mb-8">
+                <Link href="/" className="flex items-center justify-center mb-8">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center glow-purple">
                         <Brain className="w-7 h-7 text-white" />
                     </div>
-                    <span className="text-2xl font-bold text-white">Gather</span>
                 </Link>
 
                 {/* Auth Card */}
@@ -196,11 +206,21 @@ export default function AuthPage() {
                     </div>
                 </div>
 
-                {/* Footer */}
-                <p className="text-center text-slate-600 text-sm mt-8">
-                    © Gather. All rights reserved.
-                </p>
             </div>
         </div>
+    );
+}
+
+export default function AuthPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center animate-pulse">
+                    <Brain className="w-7 h-7 text-white" />
+                </div>
+            </div>
+        }>
+            <AuthContent />
+        </Suspense>
     );
 }

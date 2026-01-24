@@ -5,7 +5,6 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Brain, ArrowRight, Twitter, Video, FileText, Link2, Sparkles } from 'lucide-react';
-import { GatherWatermark } from '@/components/GatherWatermark';
 
 // Brain visual for landing page
 const BrainVisual = () => (
@@ -131,16 +130,15 @@ export default function LandingPage() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center shadow-lg glow-purple-sm">
               <Brain className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-white">Gather</span>
           </motion.div>
 
           <div className="flex items-center gap-3">
-            <Link href="/auth">
+            <Link href="/auth?mode=signin">
               <Button variant="ghost" className="font-medium text-slate-300 hover:text-white hover:bg-slate-800/50">
                 Login
               </Button>
             </Link>
-            <Link href="/auth">
+            <Link href="/auth?mode=signup">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 shadow-lg glow-purple border-0">
                   Sign Up
@@ -201,7 +199,6 @@ export default function LandingPage() {
               {/* Brain Visual with Watermark */}
               <div className="absolute inset-0">
                 <BrainVisual />
-                <GatherWatermark />
               </div>
 
               {/* Floating Preview Card */}
@@ -253,25 +250,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Minimal Footer */}
-      <motion.footer
-        className="absolute bottom-0 w-full py-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-      >
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <p className="text-sm text-slate-600">© Gather</p>
-          <div className="flex gap-6">
-            <a href="#" className="text-sm text-slate-600 hover:text-slate-400 transition-colors">
-              Privacy
-            </a>
-            <a href="#" className="text-sm text-slate-600 hover:text-slate-400 transition-colors">
-              Terms
-            </a>
-          </div>
-        </div>
-      </motion.footer>
     </div>
   );
 }

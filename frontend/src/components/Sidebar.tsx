@@ -88,7 +88,6 @@ export function Sidebar({ activeFilter, onFilterChange }: SidebarProps) {
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center glow-purple">
                             <Brain className="w-6 h-6 text-white" />
                         </div>
-                        <span className="text-xl font-bold text-white tracking-tight">Gather</span>
                     </div>
                 </div>
 
@@ -123,9 +122,6 @@ export function Sidebar({ activeFilter, onFilterChange }: SidebarProps) {
 
                 {/* Footer */}
                 <div className="mt-auto p-4 border-t border-purple-500/10 bg-slate-900/40">
-                    <p className="text-[10px] text-slate-500 text-center font-medium">
-                        © Gather Brain v1.2
-                    </p>
                 </div>
             </aside>
         </>
