@@ -13,7 +13,6 @@ interface Content {
     type: 'tweet' | 'youtube' | 'document' | 'link';
     title: string;
     link: string;
-    tags: string[];
 }
 
 interface SharedBrain {
@@ -129,7 +128,6 @@ export default function SharedBrainPage() {
                                 type={item.type}
                                 title={item.title}
                                 link={item.link}
-                                tags={item.tags}
                                 onDelete={() => { }} // Read-only for shared content
                             />
                         ))}

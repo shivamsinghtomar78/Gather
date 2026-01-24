@@ -21,7 +21,6 @@ router.get('/:username', async (req: Request, res: Response): Promise<void> => {
             userId: user._id,
             isPublic: true
         })
-            .populate('tags', 'title')
             .sort({ createdAt: -1 });
 
         const formattedContent = contents.map(content => ({
@@ -31,7 +30,6 @@ router.get('/:username', async (req: Request, res: Response): Promise<void> => {
             title: content.title,
             description: content.description,
             imageUrl: content.imageUrl,
-            tags: (content.tags as any[]).map(tag => tag.title)
         }));
 
         res.status(200).json({

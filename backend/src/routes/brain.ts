@@ -80,7 +80,6 @@ router.get('/:shareLink', async (req: Request, res: Response): Promise<void> => 
 
         // Get all user's content
         const contents = await Content.find({ userId: link.userId })
-            .populate('tags', 'title')
             .sort({ createdAt: -1 });
 
         const formattedContent = contents.map(content => ({
@@ -88,7 +87,6 @@ router.get('/:shareLink', async (req: Request, res: Response): Promise<void> => 
             type: content.type,
             link: content.link,
             title: content.title,
-            tags: (content.tags as any[]).map(tag => tag.title)
         }));
 
         res.status(200).json({
