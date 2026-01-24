@@ -65,8 +65,8 @@ export class AuthController {
                 }
             });
         } catch (error: any) {
-            if (error.message === 'INVALID_CREDENTIALS') {
-                logger.warn(`Signin failed: Invalid credentials - ${req.body.email}`);
+            if (error.message === 'INVALID_CREDENTIALS' || error.message === 'INVALID_CREDENTIALS_USER' || error.message === 'INVALID_CREDENTIALS_PASSWORD') {
+                logger.warn(`Signin failed: Invalid credentials (${error.message}) - ${req.body.email}`);
                 res.status(403).json({ message: 'Invalid email or password' });
             } else if (error.message === 'ACCOUNT_LOCKED') {
                 logger.warn(`Signin failed: Account locked - ${req.body.email}`);

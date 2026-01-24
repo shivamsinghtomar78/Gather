@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { User, IUser } from '../models/User';
 import { ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY_DAYS, SALT_ROUNDS, JWT_SECRET } from '../config/constants';
+import logger from '../utils/logger';
 
 export class AuthService {
     static async signup(data: any) {
@@ -29,22 +30,30 @@ export class AuthService {
 
     static async signin(data: any) {
         const { email, password } = data;
+        logger.debug(`🔑 internal signin attempt for: ${email}`);
 
         const user = await User.findOne({ email: email.toLowerCase() });
         if (!user) {
-            throw new Error('INVALID_CREDENTIALS');
+            logger.warn(`❌ Login failed: User not found in DB for email ${email}`);
+            throw new Error('INVALID_CREDENTIALS_USER'); // Specific internal code
         }
 
+        // Log password hash metadata (safe)
+        logger.debug(`👤 User found. ID: ${user._id} Hash starts with: ${user.password.substring(0, 7)}...`);
+
         if (user.isLocked()) {
+            logger.warn(`🔒 User account locked: ${email}`);
             throw new Error('ACCOUNT_LOCKED');
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
+            logger.warn(`❌ Login failed: Password mismatch for user ${email}`);
             await user.incLoginAttempts();
-            throw new Error('INVALID_CREDENTIALS');
+            throw new Error('INVALID_CREDENTIALS_PASSWORD'); // Specific internal code
         }
 
+        logger.info(`✅ Password verified for ${email}`);
         await user.resetLoginAttempts();
         return user;
     }
