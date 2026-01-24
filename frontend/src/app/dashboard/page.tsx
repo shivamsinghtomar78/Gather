@@ -8,7 +8,8 @@ import { AddContentModal } from '@/components/AddContentModal';
 import { ShareBrainModal } from '@/components/ShareBrainModal';
 import { Button } from '@/components/ui/button';
 import { authApi, contentApi, tokenManager } from '@/lib/api';
-import { Plus, Share2, LogOut, Grid } from 'lucide-react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { Plus, Share2, LogOut, Grid, MoreVertical } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { SkeletonCard } from '@/components/SkeletonCard';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -174,17 +175,43 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between">
                             <h1 className="text-2xl font-bold text-slate-100">{getPageTitle()}</h1>
                             <div className="flex items-center gap-3">
-                                <Button variant="outline" className="gap-2" onClick={() => setShareModalOpen(true)}>
-                                    <Share2 className="w-4 h-4" />
-                                    Share Brain
-                                </Button>
-                                <Button className="gap-2" onClick={() => { setEditingContent(null); setAddModalOpen(true); }}>
+                                <Button className="gap-2 glow-purple px-6" onClick={() => { setEditingContent(null); setAddModalOpen(true); }}>
                                     <Plus className="w-4 h-4" />
                                     Add Content
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
-                                    <LogOut className="w-4 h-4" />
-                                </Button>
+
+                                <DropdownMenu.Root>
+                                    <DropdownMenu.Trigger asChild>
+                                        <Button variant="outline" size="icon" className="rounded-xl border-purple-500/20 hover:bg-slate-800 transition-all">
+                                            <MoreVertical className="w-4 h-4 text-slate-400" />
+                                        </Button>
+                                    </DropdownMenu.Trigger>
+
+                                    <DropdownMenu.Portal>
+                                        <DropdownMenu.Content
+                                            className="min-w-[180px] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-1.5 shadow-2xl z-[150] animate-in fade-in zoom-in duration-200"
+                                            align="end"
+                                        >
+                                            <DropdownMenu.Item
+                                                onClick={() => setShareModalOpen(true)}
+                                                className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-slate-300 rounded-lg hover:bg-white/10 hover:text-white outline-none cursor-pointer border-none"
+                                            >
+                                                <Share2 className="w-4 h-4" />
+                                                Share Brain
+                                            </DropdownMenu.Item>
+
+                                            <DropdownMenu.Separator className="h-px bg-white/5 my-1 mx-1" />
+
+                                            <DropdownMenu.Item
+                                                onClick={handleLogout}
+                                                className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-red-400 rounded-lg hover:bg-red-500/10 hover:text-red-300 outline-none cursor-pointer border-none"
+                                            >
+                                                <LogOut className="w-4 h-4" />
+                                                Logout
+                                            </DropdownMenu.Item>
+                                        </DropdownMenu.Content>
+                                    </DropdownMenu.Portal>
+                                </DropdownMenu.Root>
                             </div>
                         </div>
                     </div>
