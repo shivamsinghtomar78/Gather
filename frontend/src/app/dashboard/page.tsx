@@ -175,39 +175,42 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between">
                             <h1 className="text-2xl font-bold text-slate-100">{getPageTitle()}</h1>
                             <div className="flex items-center gap-3">
-                                <Button className="gap-2 glow-purple px-6" onClick={() => { setEditingContent(null); setAddModalOpen(true); }}>
-                                    <Plus className="w-4 h-4" />
-                                    Add Content
-                                </Button>
-
                                 <DropdownMenu.Root>
                                     <DropdownMenu.Trigger asChild>
-                                        <Button variant="outline" size="icon" className="rounded-xl border-purple-500/20 hover:bg-slate-800 transition-all">
-                                            <MoreVertical className="w-4 h-4 text-slate-400" />
+                                        <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-purple-500/30 bg-slate-900/50 hover:bg-slate-800 transition-all glow-purple-sm">
+                                            <MoreVertical className="w-5 h-5 text-slate-400" />
                                         </Button>
                                     </DropdownMenu.Trigger>
 
                                     <DropdownMenu.Portal>
                                         <DropdownMenu.Content
-                                            className="min-w-[180px] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-1.5 shadow-2xl z-[150] animate-in fade-in zoom-in duration-200"
+                                            className="min-w-[200px] bg-slate-900/98 backdrop-blur-2xl border border-white/10 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[150] animate-in fade-in zoom-in duration-200"
                                             align="end"
                                         >
                                             <DropdownMenu.Item
-                                                onClick={() => setShareModalOpen(true)}
-                                                className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-slate-300 rounded-lg hover:bg-white/10 hover:text-white outline-none cursor-pointer border-none"
+                                                onClick={() => { setEditingContent(null); setAddModalOpen(true); }}
+                                                className="flex items-center gap-3 px-3 py-3 text-sm font-medium text-slate-200 rounded-xl hover:bg-white/10 hover:text-white outline-none cursor-pointer"
                                             >
-                                                <Share2 className="w-4 h-4" />
-                                                Share Brain
+                                                <Plus className="w-4 h-4 text-purple-400" />
+                                                Add New Content
                                             </DropdownMenu.Item>
 
-                                            <DropdownMenu.Separator className="h-px bg-white/5 my-1 mx-1" />
+                                            <DropdownMenu.Item
+                                                onClick={() => setShareModalOpen(true)}
+                                                className="flex items-center gap-3 px-3 py-3 text-sm font-medium text-slate-200 rounded-xl hover:bg-white/10 hover:text-white outline-none cursor-pointer"
+                                            >
+                                                <Share2 className="w-4 h-4 text-blue-400" />
+                                                Share Public Brain
+                                            </DropdownMenu.Item>
+
+                                            <DropdownMenu.Separator className="h-px bg-white/5 my-2 mx-1" />
 
                                             <DropdownMenu.Item
                                                 onClick={handleLogout}
-                                                className="flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-red-400 rounded-lg hover:bg-red-500/10 hover:text-red-300 outline-none cursor-pointer border-none"
+                                                className="flex items-center gap-3 px-3 py-3 text-sm font-medium text-red-400 rounded-xl hover:bg-red-500/10 hover:text-red-300 outline-none cursor-pointer"
                                             >
                                                 <LogOut className="w-4 h-4" />
-                                                Logout
+                                                Logout Account
                                             </DropdownMenu.Item>
                                         </DropdownMenu.Content>
                                     </DropdownMenu.Portal>
